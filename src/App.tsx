@@ -28,7 +28,8 @@ interface WallpaperItem {
   height?: number;
   tags?: string[];
   metadata?: Record<string, unknown>;
-  original?: any; // changed from unknown to any
+  detailUrl?: string; // <-- Added field for high-res detail URL
+  original?: any;
 }
 
 const API_BASE_URL = 'https://pic.re';
@@ -138,26 +139,46 @@ const ImageModal = ({
 }: { 
   image: WallpaperItem; 
   onClose: () => void; 
-  onSetWallpaper: () => void;
+  onSetWallpaper: (url: string) => void;
   isLoading: boolean;
 }) => {
   const [zoom, setZoom] = useState(1);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [highResUrl, setHighResUrl] = useState<string>(image.imageUrl);
+  const [displayUrl, setDisplayUrl] = useState<string>(image.thumbnailUrl || image.imageUrl); // start with preview
+  const [highResUrl, setHighResUrl] = useState<string | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
 
   useEffect(() => {
-    // fetch high-res if not already present and source is wallpaperflare
-    if (image.source === 'wallpaperflare' && image.thumbnailUrl && image.imageUrl === image.thumbnailUrl) {
+    console.log('[DEBUG] Modal opened for image:', image.id);
+    console.log('[DEBUG] image.source:', image.source);
+    console.log('[DEBUG] image.detailUrl:', image.detailUrl);
+    
+    // FIXEDD For WallpaperFlare, fetch high-res in background
+    if (image.source === 'wallpaperflare' && image.detailUrl) {
+      console.log('[INFO] Fetching high-res for WallpaperFlare...');
+      setIsResolving(true);
       (async () => {
         try {
-          const result: any = await invoke('resolve_wallpaperflare_highres', { detailUrl: image.original?.detailUrl ?? image.imageUrl });
+          const result: any = await invoke('resolve_wallpaperflare_highres', { detailUrl: image.detailUrl });
+          console.log('[DEBUG] Resolve result:', result);
           if (result?.success && result?.url) {
+            console.log('[SUCCESS] High-res URL resolved:', result.url);
             setHighResUrl(result.url);
+            // rplc preview with HD once its ready
+            setDisplayUrl(result.url);
+            setImgLoaded(false); // reset so new image can trigger onLoad
+          } else {
+            console.warn('[WARN] No high-res URL returned');
           }
         } catch (e) {
-          // fallback thumbnail
+          console.error('[ERROR] Failed to resolve high-res:', e);
+        } finally {
+          setIsResolving(false);
         }
       })();
+    } else {
+      // for other sources, use the image URL directly
+      setHighResUrl(image.imageUrl);
     }
   }, [image]);
 
@@ -168,6 +189,9 @@ const ImageModal = ({
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
+
+  // highResUrl for wallpaper setting if available, otherwise use displayUrl
+  const urlForWallpaper = highResUrl || displayUrl;
 
   return (
     <div 
@@ -218,17 +242,35 @@ const ImageModal = ({
           </div>
         )}
         
+          {isResolving && imgLoaded && (
+          <div className="absolute top-20 right-4 z-10 flex items-center gap-2 bg-blue-500/90 backdrop-blur-md px-3 py-2 rounded-full border border-blue-400/50">
+            <Loader2 className="w-4 h-4 animate-spin text-white" />
+            <span className="text-xs text-white font-medium">Loading HD...</span>
+          </div>
+        )}
+        
+        {/* immediately with preview, then swaps to HD */}
         <img
-          src={highResUrl}
+          key={displayUrl} // re-render when URL changes
+          src={displayUrl}
           alt={image.title || 'Wallpaper'}
-          className="max-w-full max-h-[90vh] object-contain transition-all duration-300"
+          className={`max-w-full max-h-[90vh] object-contain transition-all duration-300 ${
+            imgLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
           style={{ transform: `scale(${zoom})` }}
-          onLoad={() => setImgLoaded(true)}
+          onLoad={() => {
+            console.log('[SUCCESS] Image loaded:', displayUrl);
+            setImgLoaded(true);
+          }}
+          onError={() => {
+            console.error('[ERROR] Image failed to load');
+            setImgLoaded(true);
+          }}
         />
 
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
           <a
-            href={image.imageUrl}
+            href={urlForWallpaper}
             download
             onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
             className="flex items-center gap-2 bg-black/90 hover:bg-gray-900 text-white px-6 py-3 rounded-full transition-all font-medium shadow-xl cursor-pointer border border-gray-800"
@@ -241,7 +283,7 @@ const ImageModal = ({
             <button
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 e.stopPropagation();
-                onSetWallpaper();
+                onSetWallpaper(urlForWallpaper);
               }}
               disabled={isLoading}
               className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white px-6 py-3 rounded-full transition-all font-medium shadow-xl shadow-blue-500/30 cursor-pointer"
@@ -317,6 +359,7 @@ const ImageCard = ({
     }
   }, [shouldLoad, image]);
 
+  // Remove isTall logic, always use taller style
   return (
     <div
       ref={cardRef}
@@ -537,7 +580,6 @@ export default function WallpaperEngine() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Calculate visible range based on scroll position
   useEffect(() => {
     const handleVisibility = () => {
       const scrollTop = window.scrollY;
@@ -667,6 +709,7 @@ export default function WallpaperEngine() {
       height: item?.height,
       tags: Array.isArray(item?.tags) ? item.tags : [],
       metadata: item?.metadata ?? {},
+      detailUrl: item?.detailUrl,
       original: item,
     };
   };
@@ -776,33 +819,50 @@ export default function WallpaperEngine() {
     }
   };
 
-  const setAsWallpaper = async (image: WallpaperItem) => {
+  const setAsWallpaper = async (image: WallpaperItem, resolvedUrl?: string) => {
     if (image.type === 'video') {
-      console.log('[INFO] Opening Live2D video');
+      console.log('[INFO] Opening video:', image.imageUrl);
       window.open(image.imageUrl, '_blank');
       return;
     }
 
     setSettingWallpaper(image.id);
-    
+
     try {
-      console.log(`[INFO] Setting wallpaper: ${image.id}...`);
-      
-      const result: any = await invoke('set_wallpaper', { 
-        imageUrl: image.imageUrl 
-      });
-      
+      let finalUrl = resolvedUrl || image.imageUrl;
+      console.log('[DEBUG] Initial URL:', finalUrl);
+      console.log('[DEBUG] Resolved URL provided?', !!resolvedUrl);
+      console.log('[DEBUG] Image source:', image.source);
+      console.log('[DEBUG] Detail URL:', image.detailUrl);
+
+      if (!resolvedUrl && image.source === 'wallpaperflare' && image.detailUrl) {
+        console.log('[INFO] No resolved URL provided, fetching high-res...');
+        try {
+          const result: any = await invoke('resolve_wallpaperflare_highres', { detailUrl: image.detailUrl });
+          console.log('[DEBUG] Resolve result:', result);
+          if (result?.success && result?.url) {
+            finalUrl = result.url;
+            console.log('[SUCCESS] Using high-res URL:', finalUrl);
+          }
+        } catch (e) {
+          console.warn('[WARN] Failed to resolve high-res, using thumbnail:', e);
+        }
+      }
+
+      console.log('[INFO] Setting wallpaper with URL:', finalUrl);
+      const result: any = await invoke('set_wallpaper', { imageUrl: finalUrl });
+
       if (result.success) {
-        setCurrentWallpaper(image.imageUrl);
-        console.log('[SUCCESS] Wallpaper set! 🎨');
+        console.log('[SUCCESS] Wallpaper set successfully! 🎨');
+        setCurrentWallpaper(finalUrl);
         setSelectedImage(null);
         await loadCacheInfo();
       } else {
-        console.error('[ERROR] Set wallpaper failed:', result.error);
+        console.error('[ERROR] Failed to set wallpaper:', result.error);
         alert('Failed to set wallpaper: ' + result.error);
       }
     } catch (error) {
-      console.error('[ERROR]', error);
+      console.error('[ERROR] Exception setting wallpaper:', error);
       alert('Error: ' + error);
     } finally {
       setSettingWallpaper(null);
@@ -914,7 +974,7 @@ export default function WallpaperEngine() {
         <ImageModal
           image={selectedImage}
           onClose={() => setSelectedImage(null)}
-          onSetWallpaper={() => setAsWallpaper(selectedImage)}
+          onSetWallpaper={(url) => setAsWallpaper(selectedImage, url)} // <-- Pass resolved URL
           isLoading={settingWallpaper === selectedImage.id}
         />
       )}
