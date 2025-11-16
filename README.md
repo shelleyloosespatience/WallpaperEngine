@@ -19,8 +19,8 @@
 </div>
 
 ## CRITICAL- Windows SmartScreen Warning
-THIS IS OPENSOURCE SOFTWARE AND CODE, IF YOU THINK ANYTHING IS bad-> JUST CHECK THE CODE SIMPLY IN main.rs (the whole scraping code exists there, or show an ai that file)
-OR just install the code, and build the executable yourself using pnpm i && pnpm run build, just for your happiness lmao cz u are a broke boi, no way i want anything from you
+### THIS IS OPENSOURCE SOFTWARE AND CODE, IF YOU THINK ANYTHING IS bad-> JUST CHECK THE CODE SIMPLY IN main.rs (the whole scraping code exists there, or show an ai that file)
+### OR just install the code, and build the executable yourself using pnpm i && pnpm run build, just for your happiness lmao cz u are a broke boi, no way i want anything from you
 When you first run ColorWall, Windows may show a SmartScreen warning because the app is not code-signed, simple (certificates cost $$$ :c).
 
 To install:
