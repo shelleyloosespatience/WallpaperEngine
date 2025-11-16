@@ -40,9 +40,6 @@
     "windows": {
       "nsis": {
         "installerIcon": "icons/icon.ico"
-      },
-      "wix": {
-        "manufacturer": "Laxenta Inc"
       }
     }
   }
