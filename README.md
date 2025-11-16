@@ -164,7 +164,7 @@ If you like this project, please consider:
 ---
 ## **Generated Summary Table:**
 
-| Platform | Custom Titlebar? | Wallpaper Setting? | Effort to Support |
+| Platform | Custom Titlebar +code? | Wallpaper Setting? | Effort to Support |
 |----------|------------------|-------------------|-------------------|
 | **Windows** | ✅ Yes (yours works!) | ✅ Yes | Already done! |
 | **Linux** | ✅ Yes (same code) | ✅ Yes | Low  |
@@ -173,3 +173,4 @@ If you like this project, please consider:
 | **iOS** | ❌ No (uses system nav) | ❌ Very restricted | **Very High** - Apple walled garden |
 
 ---
+
