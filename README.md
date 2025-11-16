@@ -51,14 +51,14 @@ win antivirus is already shit anyways not that its opinion matters ._.
 ## ShowCase : )
 <div align="center">
 
-### Colorwall
-![Main Interface](assets/colorwall.png)
+### Main Interface
+![Main Interface](assets/rustColorwall.png)
 
 ### Search & Filter
-![Search Interface](assets/rustColorwall.png)
+![Search Interface](assets/nofeetfilter.png)
 
 ### Image Preview Modal
-![Preview Modal](assets/capture3.png)
+![Preview Modal](assets/modal.png)
 
 </div>
 
