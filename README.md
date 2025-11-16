@@ -1,4 +1,4 @@
-# ColorWall - A wallpaperEngine in rust, made by me for fun.
+# ColorWall - A wallpaperEngine in rust, by me for fun.
 # - By Laxenta Inc @shelleyloosespatience
 
 <div align="center">
