@@ -1,8 +1,8 @@
-# 🎨 ColorWall
+# ColorWall
 
 <div align="center">
 
-![ColorWall Logo](assets/logo.png)
+![OnwershipLogo](assets/me.jpg)
 
 **A extremely fast, optimized (not on yr gpu lmao) and free Wallpaper Engine**
 **built with Rust + Tauri for quick scraping and setting a cool new wallpaper for your cute device**
@@ -50,8 +50,8 @@ win antivirus is already shit anyways not that its opinion matters ._.
 ## ShowCase : )
 <div align="center">
 
-### Main Interface
-![Main Interface](assets/capture1.png)
+### Colorwall
+![Main Interface](assets/colorwall.png)
 
 ### Search & Filter
 ![Search Interface](assets/capture2.png)

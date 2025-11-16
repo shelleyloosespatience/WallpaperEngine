@@ -23,8 +23,7 @@
       }
     ],
     "security": {
-      "csp": null,
-      "capabilities": ["default"] 
+      "csp": null
     }
   },
   "bundle": {
