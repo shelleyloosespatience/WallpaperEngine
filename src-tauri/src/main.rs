@@ -1,4 +1,4 @@
-// prevents additional console window on windows
+// Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
@@ -21,6 +21,7 @@ struct WallpaperItem {
     width: Option<u32>,
     height: Option<u32>,
     tags: Option<Vec<String>>,
+    detail_url: Option<String>,  // dedicated field for detail URL
     original: Option<serde_json::Value>,
 }
 
@@ -124,6 +125,7 @@ async fn scrape_wallhaven(
                         width: None,
                         height: None,
                         tags: None,
+                        detail_url: None,
                         original: None,
                     });
                 }
@@ -213,6 +215,7 @@ async fn scrape_zerochan(query: &str, limit: usize) -> Result<Vec<WallpaperItem>
             width: None,
             height: None,
             tags: None,
+            detail_url: None,
             original: None,
         });
     }
@@ -277,6 +280,7 @@ async fn scrape_wallpapers_com(query: &str, limit: usize) -> Result<Vec<Wallpape
                 width: None,
                 height: None,
                 tags: None,
+                detail_url: None,
                 original: None,
             });
         }
@@ -540,34 +544,6 @@ fn pick_image_source(value: &str) -> String {
         .trim_end_matches(")")
         .to_string()
 }
-// // unused, old code
-// fn normalize_wallpaperflare_href(raw: &str) -> Option<String> {
-//     if raw.is_empty() {
-//         return None;
-//     }
-    
-//     let normalized = absolute_url(raw, "https://www.wallpaperflare.com");
-    
-//     if let Ok(url) = url::Url::parse(&normalized) {
-//         let path = url.path().to_lowercase();
-        
-//         if path.is_empty() 
-//             || path == "/" 
-//             || path.starts_with("/search") 
-//             || path.starts_with("/tag") 
-//             || path.starts_with("/page") {
-//             return None;
-//         }
-        
-//         if !path.contains("wallpaper") {
-//             return None;
-//         }
-        
-//         return Some(url.to_string());
-//     }
-    
-//     None
-// }
 
 fn parse_resolution(text: &str) -> (Option<u32>, Option<u32>) {
     let re = Regex::new(r"(\d{3,5})\s*[x×]\s*(\d{3,5})").unwrap();
@@ -588,7 +564,9 @@ async fn resolve_wallpaperflare_download(
     let absolute = absolute_url(detail_url, "https://www.wallpaperflare.com");
     let download_page_url = format!("{}/download", absolute.trim_end_matches('/'));
     
-    // go to thier main page with search
+    println!("[DEBUG] Resolving high-res from: {}", download_page_url);
+    
+    // Try to go to the /download page first
     if let Ok(response) = client
         .get(&download_page_url)
         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
@@ -600,7 +578,7 @@ async fn resolve_wallpaperflare_download(
         if let Ok(html) = response.text().await {
             let document = Html::parse_document(&html);
             
-            // get high-res imag
+            // Try to get high-res image from download page
             let show_img_selector = Selector::parse("#show_img").unwrap();
             let content_url_selector = Selector::parse("img[itemprop=\"contentUrl\"]").unwrap();
             
@@ -616,7 +594,7 @@ async fn resolve_wallpaperflare_download(
                 });
             
             if let Some(img_url) = high_res_image {
-                // res
+                // Try to get resolution from the download page
                 let width_selector = Selector::parse("span[itemprop=\"width\"] span[itemprop=\"value\"]").unwrap();
                 let height_selector = Selector::parse("span[itemprop=\"height\"] span[itemprop=\"value\"]").unwrap();
                 
@@ -631,12 +609,15 @@ async fn resolve_wallpaperflare_download(
                     .and_then(|el| el.text().collect::<String>().parse::<u32>().ok());
                 
                 let final_url = absolute_url(img_url, "https://www.wallpaperflare.com");
+                println!("[SUCCESS] Found high-res image: {}", final_url);
                 return Ok((final_url, width, height));
             }
         }
     }
     
-    // fallback
+    println!("[DEBUG] Download page failed, trying detail page: {}", absolute);
+    
+    // Fallback: try the detail page itself
     match client.get(&absolute)
         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
         .header("Referer", "https://www.wallpaperflare.com/")
@@ -683,6 +664,7 @@ async fn resolve_wallpaperflare_download(
                 let (width, height) = parse_resolution(meta_description);
                 
                 let final_url = absolute_url(&img_url, "https://www.wallpaperflare.com");
+                println!("[SUCCESS] Found image from detail page: {}", final_url);
                 return Ok((final_url, width, height));
             }
             
@@ -804,20 +786,19 @@ async fn scrape_wallpaperflare(query: &str, limit: usize) -> Result<Vec<Wallpape
         return Err("WallpaperFlare returned no results".to_string());
     }
 
+    // ✅ Return thumbnails with detailUrl for lazy loading
     let items = temp_items.into_iter().map(|temp_item| WallpaperItem {
         id: format!("wallpaperflare-{}", temp_item.id),
         source: "wallpaperflare".to_string(),
         title: Some(temp_item.title),
-        image_url: temp_item.thumbnail_url.clone(),
+        image_url: temp_item.thumbnail_url.clone(),  // Thumbnail for fast loading
         thumbnail_url: Some(temp_item.thumbnail_url),
         media_type: Some("image".to_string()),
         width: None,
         height: None,
         tags: None,
-        // Uh.. Store detail_url in original for lazy high-res fetch
-        // (serde_json::Value would be better, but for now use Option<String>)
-        // we may later want to change WallpaperItem.original to Option<String> or Option<HashMap<String, String>>
-        original: Some(serde_json::json!({ "detailUrl": temp_item.detail_url })),
+        detail_url: Some(temp_item.detail_url),  // ✅ Store detail URL here for lazy loading
+        original: None,
     }).collect();
 
     Ok(items)
@@ -900,6 +881,7 @@ async fn scrape_moewalls(
                         width: None,
                         height: None,
                         tags: None,
+                        detail_url: None,
                         original: None,
                     });
                 }
@@ -916,22 +898,30 @@ async fn scrape_moewalls(
 
 #[tauri::command]
 async fn resolve_wallpaperflare_highres(detail_url: String) -> Result<ResolveHighResResponse, String> {
+    println!("[INFO] Resolving high-res for: {}", detail_url);
+    
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
 
     match resolve_wallpaperflare_download(&detail_url, &client).await {
-        Ok((high_res_url, _, _)) => Ok(ResolveHighResResponse {
-            success: true,
-            url: Some(high_res_url),
-            error: None,
-        }),
-        Err(e) => Ok(ResolveHighResResponse {
-            success: false,
-            url: None,
-            error: Some(e),
-        }),
+        Ok((high_res_url, _, _)) => {
+            println!("[SUCCESS] Resolved to: {}", high_res_url);
+            Ok(ResolveHighResResponse {
+                success: true,
+                url: Some(high_res_url),
+                error: None,
+            })
+        }
+        Err(e) => {
+            println!("[ERROR] Failed to resolve: {}", e);
+            Ok(ResolveHighResResponse {
+                success: false,
+                url: None,
+                error: Some(e),
+            })
+        }
     }
 }
 
