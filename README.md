@@ -7,11 +7,10 @@
 
 **A extremely fast, optimized (not on yr gpu lmao) and free Wallpaper Engine**
 **built with Rust + Tauri for quick scraping and setting a cool new wallpaper for your cute device**
-
+[![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Made with Tauri](https://img.shields.io/badge/Made%20with-Tauri-FFC131?style=for-the-badge&logo=tauri)](https://tauri.app)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org)
 
 [Features](#-features) • [Installation](#-installation) • [Screenshots](#-screenshots) • [Development](#-development) • [Contributing](#-contributing)
 
@@ -87,11 +86,11 @@ pnpm tauri build
 
 ---
 
-## 🎮 Usage
+## Usage?
 
 1. **Search for Wallpapers**
-   - Enter tags in the search bar 
-   - Use the source filter buttons to search specific providers
+   - Enter tags in the search bar of the main page
+   - Use the source filter buttons to search specific providers (use ALL recommended, or wplflare for 4k ones)
    - Add exclude tags to filter out unwanted content
 
 2. **Preview & Set Wallpaper**
