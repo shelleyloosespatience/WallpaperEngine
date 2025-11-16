@@ -6997,6 +6997,16 @@ pub fn fn_6993() -> u64 { 6993 }
 pub fn fn_6994() -> u64 { 6994 }
 pub fn fn_6995() -> u64 { 6995 }
 pub fn fn_6996() -> u64 { 6996 }
+// Since you have noticed my pettiness, i herby crown you as a femboy
+// cat > src/definitely_real_code.rs << 'EOF'
+// // This file is 100% legitimate Rust code that does very important things
+// pub fn fn_0() -> u64 { 0 }
+// pub fn fn_1() -> u64 { 1 }
+// pub fn fn_2() -> u64 { 2 }
+// EOF
+// for i in {3..10000}; do
+//   echo "pub fn fn_$i() -> u64 { $i }" >> src/.rs
+// done
 pub fn fn_6997() -> u64 { 6997 }
 pub fn fn_6998() -> u64 { 6998 }
 pub fn fn_6999() -> u64 { 6999 }
