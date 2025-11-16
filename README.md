@@ -1,4 +1,5 @@
-# ColorWall
+# ColorWall - A wallpaperEngine in rust, made by me for fun.
+# - By Laxenta Inc @shelleyloosespatience
 
 <div align="center">
 
@@ -54,7 +55,7 @@ win antivirus is already shit anyways not that its opinion matters ._.
 ![Main Interface](assets/colorwall.png)
 
 ### Search & Filter
-![Search Interface](assets/capture2.png)
+![Search Interface](assets/rustColorwall.png)
 
 ### Image Preview Modal
 ![Preview Modal](assets/capture3.png)
