@@ -28,7 +28,7 @@ interface WallpaperItem {
   height?: number;
   tags?: string[];
   metadata?: Record<string, unknown>;
-  detailUrl?: string; // <-- Added field for high-res detail URL
+  detailUrl?: string; // <-- field for high-res detail URL
   original?: any;
 }
 
@@ -49,51 +49,51 @@ const SOURCE_OPTIONS: { value: WallpaperSourceOption; label: string }[] = [
 
 const GlobeIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <line x1="2" y1="12" x2="22" y2="12"/>
-    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
   </svg>
 );
 
 const PaletteIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <circle cx="8" cy="10" r="1" fill="currentColor"/>
-    <circle cx="12" cy="8" r="1" fill="currentColor"/>
-    <circle cx="16" cy="10" r="1" fill="currentColor"/>
-    <circle cx="14" cy="14" r="1" fill="currentColor"/>
-    <path d="M12 22c1.5-2 3-3.5 3-6a3 3 0 0 0-6 0c0 2.5 1.5 4 3 6z"/>
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="8" cy="10" r="1" fill="currentColor" />
+    <circle cx="12" cy="8" r="1" fill="currentColor" />
+    <circle cx="16" cy="10" r="1" fill="currentColor" />
+    <circle cx="14" cy="14" r="1" fill="currentColor" />
+    <path d="M12 22c1.5-2 3-3.5 3-6a3 3 0 0 0-6 0c0 2.5 1.5 4 3 6z" />
   </svg>
 );
 
 const StarIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
 );
 
 const CameraIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-    <circle cx="12" cy="13" r="4"/>
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+    <circle cx="12" cy="13" r="4" />
   </svg>
 );
 
 const SparklesIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/>
+    <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" />
   </svg>
 );
 
 const FlameIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
   </svg>
 );
 
 const BoltIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
   </svg>
 );
 
@@ -116,11 +116,11 @@ const LaxentaLogo = () => (
     <div className="absolute inset-0 rounded-full border-2 border-blue-400/30 animate-soundwave" style={{ animationDelay: '0.5s' }} />
     <div className="absolute inset-0 rounded-full border-2 border-indigo-500/30 animate-soundwave" style={{ animationDelay: '1s' }} />
     <div className="absolute inset-0 rounded-full border-2 border-indigo-400/20 animate-soundwave" style={{ animationDelay: '1.5s' }} />
-    
+
     <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-blue-500/50 z-10">
-      <img 
-        src="/128x128.png" 
-        alt="ColorWall uwugo" 
+      <img
+        src="/128x128.png"
+        alt="ColorWall uwugo"
         className="w-full h-full object-cover"
         onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
           e.currentTarget.style.display = 'none';
@@ -131,56 +131,49 @@ const LaxentaLogo = () => (
   </div>
 );
 
-const ImageModal = ({ 
-  image, 
-  onClose, 
-  onSetWallpaper, 
-  isLoading 
-}: { 
-  image: WallpaperItem; 
-  onClose: () => void; 
+const ImageModal = ({
+  image,
+  onClose,
+  onSetWallpaper,
+  isLoading
+}: {
+  image: WallpaperItem;
+  onClose: () => void;
   onSetWallpaper: (url: string) => void;
   isLoading: boolean;
 }) => {
   const [zoom, setZoom] = useState(1);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [displayUrl, setDisplayUrl] = useState<string>(image.thumbnailUrl || image.imageUrl); // start with preview
+  const [displayUrl, setDisplayUrl] = useState<string>(image.thumbnailUrl || image.imageUrl);
   const [highResUrl, setHighResUrl] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState(false);
+  const hasResolvedRef = useRef(false);
 
   useEffect(() => {
-    console.log('[DEBUG] Modal opened for image:', image.id);
-    console.log('[DEBUG] image.source:', image.source);
-    console.log('[DEBUG] image.detailUrl:', image.detailUrl);
-    
-    // FIXEDD For WallpaperFlare, fetch high-res in background
+    hasResolvedRef.current = false;
+    setIsResolving(false);
+
     if (image.source === 'wallpaperflare' && image.detailUrl) {
-      console.log('[INFO] Fetching high-res for WallpaperFlare...');
       setIsResolving(true);
       (async () => {
         try {
           const result: any = await invoke('resolve_wallpaperflare_highres', { detailUrl: image.detailUrl });
-          console.log('[DEBUG] Resolve result:', result);
-          if (result?.success && result?.url) {
-            console.log('[SUCCESS] High-res URL resolved:', result.url);
+          if (result?.success && result?.url && !hasResolvedRef.current) {
+            hasResolvedRef.current = true;
             setHighResUrl(result.url);
-            // rplc preview with HD once its ready
             setDisplayUrl(result.url);
-            setImgLoaded(false); // reset so new image can trigger onLoad
-          } else {
-            console.warn('[WARN] No high-res URL returned');
+            setImgLoaded(false);
+            setIsResolving(false);
           }
         } catch (e) {
           console.error('[ERROR] Failed to resolve high-res:', e);
-        } finally {
           setIsResolving(false);
         }
       })();
     } else {
-      // for other sources, use the image URL directly
       setHighResUrl(image.imageUrl);
     }
-  }, [image]);
+  }, [image.id, image.detailUrl]);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -190,95 +183,158 @@ const ImageModal = ({
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // highResUrl for wallpaper setting if available, otherwise use displayUrl
   const urlForWallpaper = highResUrl || displayUrl;
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    return false;
+  };
+
   return (
-    <div 
-      className="fixed inset-0 z-[9999] bg-black/98 backdrop-blur-xl flex items-center justify-center p-4"
+    <div
+      className="fixed inset-0 z-[9999] bg-black/98 backdrop-blur-xl flex pt-8"
       onClick={onClose}
+      onContextMenu={handleContextMenu}
     >
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-10 p-2 bg-black/80 hover:bg-gray-900 rounded-full transition-colors cursor-pointer border border-gray-800"
-      >
-        <X className="w-6 h-6 text-gray-400" />
-      </button>
+      {/* LEFT: IMAGE AREA (75%) */}
+      <div className="flex-1 flex items-center justify-center p-8 pt-16 relative" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute top-14 left-6 z-10 flex gap-2">
+          <button
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              e.stopPropagation();
+              setZoom(Math.min(zoom + 0.25, 3));
+            }}
+            className="p-2.5 bg-gray-900/95 hover:bg-gray-800 rounded-lg transition-all cursor-pointer border border-gray-800/50 shadow-lg backdrop-blur-sm"
+          >
+            <ZoomIn className="w-4 h-4 text-gray-300" />
+          </button>
+          <button
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              e.stopPropagation();
+              setZoom(Math.max(zoom - 0.25, 0.5));
+            }}
+            className="p-2.5 bg-gray-900/95 hover:bg-gray-800 rounded-lg transition-all cursor-pointer border border-gray-800/50 shadow-lg backdrop-blur-sm"
+          >
+            <ZoomOut className="w-4 h-4 text-gray-300" />
+          </button>
+          <button
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              e.stopPropagation();
+              setZoom(1);
+            }}
+            className="px-3 py-2.5 bg-gray-900/95 hover:bg-gray-800 rounded-lg transition-all text-xs text-gray-300 cursor-pointer border border-gray-800/50 shadow-lg backdrop-blur-sm font-medium"
+          >
+            Reset
+          </button>
+        </div>
 
-      <div className="absolute top-4 left-4 z-10 flex gap-2">
-        <button
-          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-            e.stopPropagation();
-            setZoom(Math.min(zoom + 0.25, 3));
-          }}
-          className="p-2 bg-black/80 hover:bg-gray-900 rounded-full transition-colors cursor-pointer border border-gray-800"
-        >
-          <ZoomIn className="w-5 h-5 text-gray-400" />
-        </button>
-        <button
-          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-            e.stopPropagation();
-            setZoom(Math.max(zoom - 0.25, 0.5));
-          }}
-          className="p-2 bg-black/80 hover:bg-gray-900 rounded-full transition-colors cursor-pointer border border-gray-800"
-        >
-          <ZoomOut className="w-5 h-5 text-gray-400" />
-        </button>
-        <button
-          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-            e.stopPropagation();
-            setZoom(1);
-          }}
-          className="px-3 py-2 bg-black/80 hover:bg-gray-900 rounded-full transition-colors text-xs text-gray-400 cursor-pointer border border-gray-800"
-        >
-          Reset
-        </button>
-      </div>
-
-      <div className="relative max-w-7xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-        {!imgLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+        {isResolving && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none z-20">
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-gradient-to-r from-blue-600/90 via-indigo-600/90 to-purple-600/90 backdrop-blur-md px-5 py-3 rounded-full border border-blue-400/30 shadow-2xl shadow-blue-500/50 animate-pulse">
+              <div className="relative">
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
+                <div className="absolute inset-0 blur-md bg-white/30 rounded-full animate-spin" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm text-white font-bold tracking-wide">Fetching HD Quality</span>
+                <span className="text-xs text-blue-100">Please wait...</span>
+              </div>
+            </div>
           </div>
         )}
-        
-          {isResolving && imgLoaded && (
-          <div className="absolute top-20 right-4 z-10 flex items-center gap-2 bg-blue-500/90 backdrop-blur-md px-3 py-2 rounded-full border border-blue-400/50">
-            <Loader2 className="w-4 h-4 animate-spin text-white" />
-            <span className="text-xs text-white font-medium">Loading HD...</span>
-          </div>
-        )}
-        
-        {/* immediately with preview, then swaps to HD */}
+
         <img
-          key={displayUrl} // re-render when URL changes
+          key={displayUrl}
           src={displayUrl}
           alt={image.title || 'Wallpaper'}
-          className={`max-w-full max-h-[90vh] object-contain transition-all duration-300 ${
-            imgLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
+          className={`max-w-full max-h-full object-contain transition-all duration-500 rounded-lg ${imgLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
           style={{ transform: `scale(${zoom})` }}
-          onLoad={() => {
-            console.log('[SUCCESS] Image loaded:', displayUrl);
-            setImgLoaded(true);
-          }}
-          onError={() => {
-            console.error('[ERROR] Image failed to load');
-            setImgLoaded(true);
-          }}
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgLoaded(true)}
+          onContextMenu={handleContextMenu}
+          draggable={false}
         />
+      </div>
+      {/* sidebar */}
+      <div
+        className="w-96 bg-black/95 backdrop-blur-2xl border-l border-gray-900 flex flex-col shadow-2xl pt-8"
+        onClick={(e) => e.stopPropagation()}
+        onContextMenu={handleContextMenu}
+      >
+        <div className="px-4 py-3 border-b border-gray-900/50">
+          <button
+            onClick={onClose}
+            className="w-full flex items-center justify-center gap-2 p-2.5 bg-gray-900/80 hover:bg-gray-800 rounded-lg transition-all cursor-pointer border border-gray-800/50 group"
+          >
+            <X className="w-4 h-4 text-gray-500 group-hover:text-gray-300 transition-colors" />
+            <span className="text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors">Close</span>
+          </button>
+        </div>
 
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
+        {/* Info Section */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Title */}
+          <div>
+            <h3 className="text-base font-bold text-gray-200 mb-2">{image.title || 'Untitled'}</h3>
+            <div className="inline-flex items-center gap-2 bg-blue-500/10 px-2.5 py-1.5 rounded-lg border border-blue-500/20">
+              {getSourceIcon(image.source)}
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+                {image.source}
+              </span>
+            </div>
+          </div>
+
+          {/* Dimensions */}
+          {image.width && image.height && (
+            <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800/50">
+              <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Dimensions</div>
+              <div className="text-xl font-bold text-gray-200 font-mono">
+                {image.width} × {image.height}
+              </div>
+              <div className="text-xs text-gray-600 mt-1">
+                {(image.width / image.height).toFixed(2)} aspect ratio
+              </div>
+            </div>
+          )}
+
+          {/* Tags */}
+          {image.tags && image.tags.length > 0 && (
+            <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800/50">
+              <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Tags</div>
+              <div className="flex flex-wrap gap-1.5">
+                {image.tags.slice(0, 10).map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2 py-1 bg-gray-800/50 text-gray-400 rounded-md text-xs font-medium border border-gray-700/50"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {image.type === 'video' && (
+            <div className="bg-emerald-500/10 rounded-lg p-3 border border-emerald-500/20">
+              <div className="flex items-center gap-2 text-emerald-400">
+                <Play className="w-4 h-4" />
+                <span className="text-sm font-semibold">Live2D Wallpaper</span>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="p-4 border-t border-gray-900/50 space-y-2">
           <a
             href={urlForWallpaper}
             download
             onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
-            className="flex items-center gap-2 bg-black/90 hover:bg-gray-900 text-white px-6 py-3 rounded-full transition-all font-medium shadow-xl cursor-pointer border border-gray-800"
+            onContextMenu={handleContextMenu}
+            className="w-full flex items-center justify-center gap-2 bg-gray-900/80 hover:bg-gray-800 text-white px-4 py-3 rounded-lg transition-all font-medium shadow-lg cursor-pointer border border-gray-800/50 text-sm"
           >
-            <Download className="w-5 h-5" />
+            <Download className="w-4 h-4" />
             Download
           </a>
-          
+
           {image.type !== 'video' && (
             <button
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -286,11 +342,11 @@ const ImageModal = ({
                 onSetWallpaper(urlForWallpaper);
               }}
               disabled={isLoading}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white px-6 py-3 rounded-full transition-all font-medium shadow-xl shadow-blue-500/30 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg transition-all font-medium shadow-xl shadow-blue-500/20 cursor-pointer text-sm"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Setting...
                 </>
               ) : (
@@ -302,21 +358,17 @@ const ImageModal = ({
             </button>
           )}
         </div>
-
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-md px-4 py-2 rounded-full border border-gray-800">
-          <p className="text-sm text-gray-300 font-medium">{image.title || 'Untitled'}</p>
-        </div>
       </div>
     </div>
   );
 };
 
-const ImageCard = ({ 
-  image, 
+const ImageCard = ({
+  image,
   onSelect,
-  isVisible 
-}: { 
-  image: WallpaperItem; 
+  isVisible
+}: {
+  image: WallpaperItem;
   onSelect: () => void;
   isVisible: boolean;
 }) => {
@@ -359,7 +411,6 @@ const ImageCard = ({
     }
   }, [shouldLoad, image]);
 
-  // Remove isTall logic, always use taller style
   return (
     <div
       ref={cardRef}
@@ -376,7 +427,7 @@ const ImageCard = ({
             <div className="w-6 h-6 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
           </div>
         )}
-        
+
         {shouldLoad ? (
           <img
             ref={imgRef}
@@ -385,13 +436,18 @@ const ImageCard = ({
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
+            onContextMenu={(e: React.MouseEvent) => {
+              e.preventDefault();
+              return false;
+            }}
+            draggable={false}
           />
         ) : (
           <div className="absolute inset-0 bg-gray-950 flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-gray-800 border-t-gray-700 rounded-full animate-spin" />
           </div>
         )}
-        
+
         {imgError && (
           <div className="absolute inset-0 flex items-center justify-center text-gray-700">
             <div className="text-center">
@@ -400,7 +456,7 @@ const ImageCard = ({
             </div>
           </div>
         )}
-        
+
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
           {image.type === 'video' ? (
             <div className="flex items-center gap-2 bg-emerald-500/90 px-4 py-2 rounded-full text-sm font-semibold">
@@ -490,8 +546,8 @@ const CustomTitleBar = () => {
   };
   return (
     <div className="fixed top-0 left-0 right-0 h-8 bg-black/98 backdrop-blur-xl border-b border-gray-900/50 flex items-center justify-between px-3 z-[99999] select-none">
-      <div 
-        data-tauri-drag-region 
+      <div
+        data-tauri-drag-region
         className="flex items-center gap-2 flex-1 h-full"
       >
         <div className="w-5 h-5 relative pointer-events-none">
@@ -499,7 +555,7 @@ const CustomTitleBar = () => {
         </div>
         <span className="text-xs font-semibold text-gray-500">ColorWall</span>
       </div>
-      
+
       {/* Window controls */}
       <div className="flex items-center relative z-10">
         <button
@@ -560,7 +616,7 @@ export default function WallpaperEngine() {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
-          
+
           if (currentScrollY > 100 && currentScrollY > lastScrollY.current) {
             setIsHeaderCompact(true);
             setShowExpandedHeader(false);
@@ -568,7 +624,7 @@ export default function WallpaperEngine() {
             setIsHeaderCompact(false);
             setShowExpandedHeader(true);
           }
-          
+
           lastScrollY.current = currentScrollY;
           ticking = false;
         });
@@ -584,15 +640,15 @@ export default function WallpaperEngine() {
     const handleVisibility = () => {
       const scrollTop = window.scrollY;
       const viewportHeight = window.innerHeight;
-      const itemHeight = 300; 
+      const itemHeight = 300;
       const itemsPerRow = Math.floor(window.innerWidth / 400); // approx items per row
-      
+
       const startRow = Math.max(0, Math.floor((scrollTop - viewportHeight) / itemHeight) - UNLOAD_THRESHOLD);
       const endRow = Math.ceil((scrollTop + viewportHeight * 2) / itemHeight) + UNLOAD_THRESHOLD;
-      
+
       const start = startRow * itemsPerRow;
       const end = endRow * itemsPerRow;
-      
+
       setVisibleRange({ start, end });
     };
 
@@ -728,25 +784,25 @@ export default function WallpaperEngine() {
       const includeTags = searchTags.split(' ').filter(t => t.trim());
       const excludeTagsArray = excludeTags.split(' ').filter(t => t.trim());
       const queryString = includeTags.join(' ');
-  
+
       if (selectedSource === 'picre') {
         console.log(`[INFO] Fetching from pic.re page ${pageNum}: [${includeTags.join(', ')}]`);
         const params: Record<string, string> = { compress: 'false' };
         if (includeTags.length > 0) params.in = includeTags.join(',');
         if (excludeTagsArray.length > 0) params.of = excludeTagsArray.join(',');
-  
-        const promises = Array(DEFAULT_FETCH_COUNT).fill(null).map(() => 
+
+        const promises = Array(DEFAULT_FETCH_COUNT).fill(null).map(() =>
           fetch(`${API_BASE_URL}/image?${new URLSearchParams(params)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'User-Agent': 'WallpaperApp/1.0' }
           }).then(res => res.json())
         );
-  
+
         const results = await Promise.allSettled(promises);
         const images = results
           .filter((r): r is PromiseFulfilledResult<PicReImage> => r.status === 'fulfilled' && r.value)
           .map(r => r.value);
-        
+
         if (images.length === 0) {
           console.warn('[WARN] No images found');
           if (!append) alert('No images found. Try different tags.');
@@ -762,16 +818,16 @@ export default function WallpaperEngine() {
         }
         return;
       }
-  
+
       console.log(`[INFO] Fetching from ${selectedSource} page ${pageNum}: "${queryString}"`);
-      
+
       let backendSources: string[] | undefined;
       if (selectedSource !== 'all') {
         backendSources = [selectedSource];
       } else {
         backendSources = ['wallhaven', 'zerochan', 'moewalls', 'wallpapers', 'wallpaperflare'];
       }
-      
+
       const response: any = await invoke('search_wallpapers', {
         query: queryString || 'anime',
         sources: backendSources,
@@ -782,33 +838,33 @@ export default function WallpaperEngine() {
         aiArt: false,
       });
 
-    if (!response?.items || response.items.length === 0) {
-      console.warn('[WARN] No items returned');
-      if (!append) alert('No wallpapers found. Try different filters.');
-      setHasMore(false);
-      return;
-    }
+      if (!response?.items || response.items.length === 0) {
+        console.warn('[WARN] No items returned');
+        if (!append) alert('No wallpapers found. Try different filters.');
+        setHasMore(false);
+        return;
+      }
 
-    const normalized = (response.items as any[])
-      .map(normalizeExternalItem)
-      .filter(item => item.imageUrl);
+      const normalized = (response.items as any[])
+        .map(normalizeExternalItem)
+        .filter(item => item.imageUrl);
 
-    // dupe by id
-    let newWallpapers: WallpaperItem[] = [];
-    if (append) {
-      const existingIds = new Set(wallpapers.map(w => w.id));
-      newWallpapers = normalized.filter(item => !existingIds.has(item.id));
-      setWallpapers(prev => [...prev, ...newWallpapers]);
-    } else {
-      newWallpapers = normalized;
-      setWallpapers(newWallpapers);
-    }
+      // dupe by id
+      let newWallpapers: WallpaperItem[] = [];
+      if (append) {
+        const existingIds = new Set(wallpapers.map(w => w.id));
+        newWallpapers = normalized.filter(item => !existingIds.has(item.id));
+        setWallpapers(prev => [...prev, ...newWallpapers]);
+      } else {
+        newWallpapers = normalized;
+        setWallpapers(newWallpapers);
+      }
 
-    // if we got less than expected (ex we ask 20 it gave 19, it means the prov is out of wallpapers for the tag), stop loading more
-    if (newWallpapers.length < DEFAULT_FETCH_COUNT / 2) {
-      setHasMore(false);
-    }
-      
+      // if we got less than expected (ex we ask 20 it gave 19, it means the prov is out of wallpapers for the tag), stop loading more
+      if (newWallpapers.length < DEFAULT_FETCH_COUNT / 2) {
+        setHasMore(false);
+      }
+
     } catch (error) {
       console.error('[ERROR] Fetch failed:', error);
       if (!append) alert('Error fetching wallpapers: ' + error);
@@ -853,7 +909,7 @@ export default function WallpaperEngine() {
       const result: any = await invoke('set_wallpaper', { imageUrl: finalUrl });
 
       if (result.success) {
-        console.log('[SUCCESS] Wallpaper set successfully! 🎨');
+        console.log('[SUCCESS] Wallpaper set successfully :3');
         setCurrentWallpaper(finalUrl);
         setSelectedImage(null);
         await loadCacheInfo();
@@ -871,7 +927,7 @@ export default function WallpaperEngine() {
 
   const clearCache = async () => {
     if (!confirm('Clear all cached wallpapers?')) return;
-    
+
     try {
       const result: any = await invoke('clear_cache');
       if (result.success) {
@@ -906,9 +962,15 @@ export default function WallpaperEngine() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-//  yes i have css here
+  //  yes i have css here
   return (
-    <div className="min-h-screen bg-black text-gray-100 relative pt-8">
+    <div
+      className="min-h-screen bg-black text-gray-100 relative pt-8"
+      onContextMenu={(e: React.MouseEvent) => {
+        e.preventDefault();
+        return false;
+      }}
+    >
       <CustomTitleBar />
       <style>{`
         @keyframes fadeIn {
@@ -931,6 +993,29 @@ export default function WallpaperEngine() {
         .animate-soundwave {
           animation: soundwave 2s ease-out infinite;
         }
+
+        /* CUSTOM SCROLLBAR - NEW */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #3b82f6 #0a0a0a;
+        }
+        *::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        *::-webkit-scrollbar-track {
+          background: #0a0a0a;
+          border-radius: 4px;
+        }
+        *::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, #3b82f6, #6366f1);
+          border-radius: 4px;
+          border: 1px solid #1e293b;
+        }
+        *::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, #2563eb, #4f46e5);
+        }
+
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
@@ -938,28 +1023,28 @@ export default function WallpaperEngine() {
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
-        
+
         button, a, input, select, textarea {
           -webkit-app-region: no-drag;
         }
         .sticky {
           -webkit-app-region: no-drag;
         }
-        
+
         * {
           -webkit-user-select: none;
           -moz-user-select: none;
           -ms-user-select: none;
           user-select: none;
         }
-        
+
         input, textarea {
           -webkit-user-select: text;
           -moz-user-select: text;
           -ms-user-select: text;
           user-select: text;
         }
-        /* --- Drag region fixes --- */
+
         [data-tauri-drag-region] {
           -webkit-app-region: drag;
           app-region: drag;
@@ -967,6 +1052,16 @@ export default function WallpaperEngine() {
         button {
           -webkit-app-region: no-drag !important;
           app-region: no-drag !important;
+        }
+
+        /* DISABLE RIGHT CLICK - NEW */
+        img {
+          pointer-events: auto;
+          -webkit-user-drag: none;
+          -khtml-user-drag: none;
+          -moz-user-drag: none;
+          -o-user-drag: none;
+          user-drag: none;
         }
       `}</style>
 
@@ -978,12 +1073,11 @@ export default function WallpaperEngine() {
           isLoading={settingWallpaper === selectedImage.id}
         />
       )}
-      <div 
-        className={`fixed top-8 left-0 right-0 z-50 transition-all duration-500 ease-out ${
-          isHeaderCompact 
-            ? 'translate-y-0 opacity-100' 
+      <div
+        className={`fixed top-8 left-0 right-0 z-50 transition-all duration-500 ease-out ${isHeaderCompact
+            ? 'translate-y-0 opacity-100'
             : '-translate-y-full opacity-0 pointer-events-none'
-        }`}
+          }`}
       >
         <div className="bg-black/98 backdrop-blur-xl border-b border-gray-900 shadow-2xl">
           <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between">
@@ -1000,7 +1094,7 @@ export default function WallpaperEngine() {
                 ColorWall
               </span>
             </button>
-            
+
             <div className="flex items-center gap-2.5">
               <div className="flex items-center gap-2 bg-gray-950/80 px-3 py-1.5 rounded-lg border border-gray-900">
                 <HardDrive className="w-3.5 h-3.5 text-blue-400" />
@@ -1010,10 +1104,9 @@ export default function WallpaperEngine() {
           </div>
         </div>
       </div>
-      <div 
-        className={`bg-black/98 backdrop-blur-xl border-b border-gray-900 sticky top-8 z-40 shadow-2xl transition-all duration-500 ease-out ${
-          showExpandedHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
-        }`}
+      <div
+        className={`bg-black/98 backdrop-blur-xl border-b border-gray-900 sticky top-8 z-40 shadow-2xl transition-all duration-500 ease-out ${showExpandedHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 py-4 relative z-10">
           <div className="flex items-center justify-between mb-3">
@@ -1031,7 +1124,7 @@ export default function WallpaperEngine() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2.5">
               <div className="flex items-center gap-2 bg-gray-950/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-gray-900">
                 <HardDrive className="w-4 h-4 text-blue-400" />
@@ -1053,11 +1146,10 @@ export default function WallpaperEngine() {
               <button
                 key={source.value}
                 onClick={() => setSelectedSource(source.value)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap cursor-pointer ${
-                  selectedSource === source.value
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap cursor-pointer ${selectedSource === source.value
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
                     : 'bg-gray-950/80 text-gray-500 hover:bg-gray-900 hover:text-gray-400 border border-gray-900'
-                }`}
+                  }`}
               >
                 {getSourceIcon(source.value)}
                 <span>{source.label}</span>
@@ -1081,7 +1173,7 @@ export default function WallpaperEngine() {
                 {searchTags.length}/{MAX_INPUT_LENGTH}
               </span>
             </div>
-            
+
             <div className="flex gap-2.5">
               <input
                 type="text"
