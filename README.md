@@ -59,7 +59,7 @@ win antivirus is already shit anyways not that its opinion matters ._.
 ![Search Interface](assets/nofeetfilter.png)
 
 ### Image Preview Modal
-![Preview Modal](assets/updatedModal.PNG)
+![Preview Modal](assets/updatedmodal.PNG)
 
 </div>
 
@@ -173,6 +173,7 @@ If you like this project, please consider:
 | **iOS** | ❌ No (uses system nav) | ❌ Very restricted | **Very High** - Apple walled garden |
 
 ---
+
 
 
 
