@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'",
+      "csp": null,
       "capabilities": ["default"] 
     }
   },
@@ -46,3 +46,4 @@
   }
 }
 }
+
