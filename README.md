@@ -1,6 +1,6 @@
-# ColorWall - A wallpaperEngine in rust, by me for fun.
-# - By Laxenta Inc @shelleyloosespatience
-
+# ColorWall - A wallpaperEngine in rust, by me for fun
+## - By Laxenta Inc @shelleyloosespatience
+[![Build](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml/badge.svg)](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml)
 <div align="center">
 
 ![OnwershipLogo](assets/me.jpg)
@@ -173,6 +173,7 @@ If you like this project, please consider:
 | **iOS** | ❌ No (uses system nav) | ❌ Very restricted | **Very High** - Apple walled garden |
 
 ---
+
 
 
 
