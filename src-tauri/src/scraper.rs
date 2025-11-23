@@ -46,7 +46,6 @@ pub fn parse_resolution(text: &str) -> (Option<u32>, Option<u32>) {
     (None, None)
 }
 
-// wallhaven main scraper - ✅ ALREADY HAS PAGINATION
 pub async fn scrape_wallhaven(
     query: &str,
     page: u32,
@@ -126,9 +125,7 @@ pub async fn scrape_wallhaven(
     Ok(items)
 }
 
-// zerochan main scraper - ✅ ADDED PAGINATION SUPPORT
 pub async fn scrape_zerochan(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
-    println!("[SCRAPER:ZEROCHAN] Starting scrape - query: '{}', page: {}, limit: {}", query, page, limit);
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()
@@ -219,7 +216,6 @@ pub async fn scrape_zerochan(query: &str, limit: usize, page: u32) -> Result<Vec
     Ok(items)
 }
 
-// wallpapers.com main scraper - ✅ ADDED PAGINATION SUPPORT
 pub async fn scrape_wallpapers_com(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
     println!("[SCRAPER:WALLPAPERS] Starting scrape - query: '{}', page: {}, limit: {}", query, page, limit);
     let client = reqwest::Client::builder()
@@ -227,7 +223,6 @@ pub async fn scrape_wallpapers_com(query: &str, limit: usize, page: u32) -> Resu
         .build()
         .map_err(|e| e.to_string())?;
 
-    // Wallpapers.com uses ?p=2 for pagination
     let url = if page > 1 {
         format!("https://wallpapers.com/search/{}?p={}", urlencoding::encode(query), page)
     } else {
@@ -294,7 +289,6 @@ pub async fn scrape_wallpapers_com(query: &str, limit: usize, page: u32) -> Resu
     Ok(items)
 }
 
-// wallpaperflare download resolver - NO CHANGES NEEDED
 pub async fn resolve_wallpaperflare_download(
     detail_url: &str,
     client: &reqwest::Client,
@@ -408,11 +402,10 @@ pub async fn resolve_wallpaperflare_download(
     }
 }
 
-// wallpaperflare main scraper - ✅ ADDED PAGINATION SUPPORT
 pub async fn scrape_wallpaperflare(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
     println!("[SCRAPER:WALLPAPERFLARE] Starting scrape - query: '{}', page: {}, limit: {}", query, page, limit);
     let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x84) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
 
