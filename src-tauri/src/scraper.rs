@@ -46,6 +46,7 @@ pub fn parse_resolution(text: &str) -> (Option<u32>, Option<u32>) {
     (None, None)
 }
 
+// wallhaven main scraper - ✅ ALREADY HAS PAGINATION
 pub async fn scrape_wallhaven(
     query: &str,
     page: u32,
@@ -125,6 +126,7 @@ pub async fn scrape_wallhaven(
     Ok(items)
 }
 
+// zerochan main scraper - ✅ ADDED PAGINATION SUPPORT
 pub async fn scrape_zerochan(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
     println!("[SCRAPER:ZEROCHAN] Starting scrape - query: '{}', page: {}, limit: {}", query, page, limit);
     let client = reqwest::Client::builder()
@@ -132,7 +134,7 @@ pub async fn scrape_zerochan(query: &str, limit: usize, page: u32) -> Result<Vec
         .build()
         .map_err(|e| e.to_string())?;
 
-    // Zerochan uses ?p= for pagination ig?
+    // Zerochan uses ?p= for pagination
     let url = format!("https://www.zerochan.net/{}?p={}", urlencoding::encode(query), page);
 
     let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
@@ -217,6 +219,7 @@ pub async fn scrape_zerochan(query: &str, limit: usize, page: u32) -> Result<Vec
     Ok(items)
 }
 
+// wallpapers.com main scraper - ✅ ADDED PAGINATION SUPPORT
 pub async fn scrape_wallpapers_com(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
     println!("[SCRAPER:WALLPAPERS] Starting scrape - query: '{}', page: {}, limit: {}", query, page, limit);
     let client = reqwest::Client::builder()
@@ -405,6 +408,7 @@ pub async fn resolve_wallpaperflare_download(
     }
 }
 
+// wallpaperflare main scraper - ✅ ADDED PAGINATION SUPPORT
 pub async fn scrape_wallpaperflare(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
     println!("[SCRAPER:WALLPAPERFLARE] Starting scrape - query: '{}', page: {}, limit: {}", query, page, limit);
     let client = reqwest::Client::builder()
@@ -779,7 +783,7 @@ pub async fn scrape_motionbgs(query: &str, limit: usize, page: u32) -> Result<Ve
     Ok(items)
 }
 
-// motionbgs detail extractor - NO CHANGES NEEDED
+// motionbgs detail extractor - fixed lol
 pub async fn scrape_motionbgs_detail(detail_url: &str) -> Result<(String, Option<String>), String> {
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -791,31 +795,21 @@ pub async fn scrape_motionbgs_detail(detail_url: &str) -> Result<(String, Option
     let response = client.get(detail_url).send().await.map_err(|e| e.to_string())?;
     let html = response.text().await.map_err(|e| e.to_string())?;
 
-    let json_ld_start = html.find(r#"<script type=application/ld+json>"#)
-        .ok_or_else(|| "json-ld script not found".to_string())?;
-
-    let preview_url = (|| {
-        let json_start = json_ld_start + r#"<script type=application/ld+json>"#.len();
-        html[json_start..]
-            .find("</script>")
-            .and_then(|json_end| {
-                let json_str = &html[json_start..json_start + json_end];
-                serde_json::from_str::<serde_json::Value>(json_str)
-                    .ok()
-                    .and_then(|json_value| {
-                        json_value["contentUrl"]
-                            .as_str()
-                            .map(|url| absolute_url(url, "https://motionbgs.com"))
-                    })
-            })
-    })()
-    .ok_or_else(|| "preview video url not found in json-ld".to_string())?;
+    let document = Html::parse_document(&html);
+    
+    // Extract preview video from <video><source src="..."> tag
+    let video_selector = Selector::parse("video source[src]").unwrap();
+    let preview_url = document
+        .select(&video_selector)
+        .next()
+        .and_then(|source| source.value().attr("src"))
+        .map(|src| absolute_url(src, "https://motionbgs.com"))
+        .ok_or_else(|| "preview video url not found in video tag".to_string())?;
 
     println!("[info] found preview video url: {}", preview_url);
 
-    let document = Html::parse_document(&html);
+    // Extract 4K download link
     let download_selector = Selector::parse("div.download a[href*='/dl/4k/']").unwrap();
-    
     let download_4k_url = document
         .select(&download_selector)
         .next()
