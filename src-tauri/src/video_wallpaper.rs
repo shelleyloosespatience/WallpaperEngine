@@ -8,7 +8,7 @@ use std::fs;
 use crate::{desktop_injection, wmf_player};
 
 #[cfg(target_os = "linux")]
-use crate::video_wallpaper_linux;
+use wallpaperengine::video_wallpaper_linux;
 
 #[cfg(target_os = "windows")]
 use std::{thread, time::Duration};

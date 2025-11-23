@@ -1,5 +1,5 @@
 'use client';
-
+// debug logs in all needed places added for devs, so if someone wants to make changes to the code locally, they don't die adding logs
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -687,4 +687,3 @@ export default function WallpaperEngine() {
     </div>
   );
 }
-

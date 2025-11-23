@@ -1,7 +1,6 @@
 //auto generated filler file for now
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
-use tauri::AppHandle;
 
 lazy_static::lazy_static! {
     static ref MPV_PROCESS: Arc<Mutex<Option<std::process::Child>>> = Arc::new(Mutex::new(None));
@@ -19,7 +18,7 @@ pub fn create_linux_video_wallpaper(video_path: &str) -> Result<(), String> {
         .output();
     
     if mpv_check.is_err() || !mpv_check.unwrap().status.success() {
-        return Err("mpv is not installed. Please install mpv: sudo apt install mpv (Ubuntu/Debian) or sudo pacman -S mpv (Arch)".to_string());
+        return Err("guess, mpv is not installed. Please install mpv: sudo apt install mpv (Ubuntu/Debian) or sudo pacman -S mpv (Arch)".to_string());
     }
     
     // Get screen dimensions

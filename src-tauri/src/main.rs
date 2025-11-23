@@ -410,7 +410,7 @@ fn main() {
             get_video_wallpaper_status,
         ])
         .setup(|app| {
-            let window = app.get_webview_window("main").unwrap();
+            let _window = app.get_webview_window("main").unwrap();
 
             // #[cfg(debug_assertions)]
             // {
