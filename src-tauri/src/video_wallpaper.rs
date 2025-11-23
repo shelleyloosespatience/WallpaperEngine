@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tauri::AppHandle;
 use std::fs;
-// ignore dead code pls at line 379 lol
+
 #[cfg(target_os = "windows")]
 use crate::{desktop_injection, wmf_player};
 
@@ -14,7 +14,6 @@ use crate::video_wallpaper_linux;
 use std::{thread, time::Duration};
 
 lazy_static::lazy_static! {
-    // global state for video wallpaper
     static ref VIDEO_WALLPAPER_STATE: Arc<Mutex<VideoWallpaperState>> = Arc::new(Mutex::new(VideoWallpaperState {
         is_active: false,
         video_path: None,
@@ -24,12 +23,10 @@ lazy_static::lazy_static! {
 
 #[cfg(target_os = "windows")]
 lazy_static::lazy_static! {
-    // global wmf player instance
     static ref WMF_PLAYER: Mutex<Option<wmf_player::WmfPlayer>> = Mutex::new(None);
 }
 
 fn get_wallpaper_dir() -> Result<PathBuf, String> {
-    // temp dir for wallpapers
     let dir = std::env::temp_dir().join("live_wallpapers");
     std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create wallpaper directory: {}", e))?;
     Ok(dir)
@@ -42,12 +39,11 @@ fn get_state_file() -> Result<PathBuf, String> {
 }
 
 fn save_wallpaper_state(state: &VideoWallpaperState) -> Result<(), String> {
-    // persist state to disk
     let state_file = get_state_file()?;
     let json = serde_json::to_string_pretty(state)
-        .map_err(|e| format!("Failed to serialize state: {}", e))?;
+        .map_err(|e| format!("failed to serialize state: {}", e))?;
     fs::write(&state_file, json)
-        .map_err(|e| format!("Failed to write state file: {}", e))?;
+        .map_err(|e| format!("failed to write state file: {}", e))?;
     Ok(())
 }
 
@@ -70,27 +66,25 @@ fn load_wallpaper_state() -> Option<VideoWallpaperState> {
 }
 
 pub async fn download_video(url: &str) -> Result<PathBuf, String> {
-    // download video to temp dir
-    println!("[net] download start: {}", url);
     
     let client = reqwest::Client::builder()
         .user_agent("WallpaperApp/1.0")
         .timeout(std::time::Duration::from_secs(300))
         .build()
-        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+        .map_err(|e| format!("failed to create HTTP client: {}", e))?;
 
     let response = client
         .get(url)
         .send()
         .await
-        .map_err(|e| format!("Failed to download video: {}", e))?;
+        .map_err(|e| format!("failed to download video: {}", e))?;
 
     if !response.status().is_success() {
         return Err(format!("Server returned error: {}", response.status()));
     }
 
     let total_size = response.content_length().unwrap_or(0);
-    println!("[net] downloading {} bytes", total_size);
+    println!("downloading {} bytes...", total_size);
 
     let bytes = response
         .bytes()
@@ -98,7 +92,7 @@ pub async fn download_video(url: &str) -> Result<PathBuf, String> {
         .map_err(|e| format!("Failed to read video data: {}", e))?;
 
     if bytes.is_empty() {
-        return Err("Downloaded file is empty".to_string());
+        return Err("Wtf? Downloaded file is empty".to_string());
     }
 
     let wallpaper_dir = get_wallpaper_dir()?;
@@ -114,14 +108,13 @@ pub async fn download_video(url: &str) -> Result<PathBuf, String> {
     let file_path = wallpaper_dir.join(file_name);
 
     std::fs::write(&file_path, bytes)
-        .map_err(|e| format!("Failed to save video file: {}", e))?;
+        .map_err(|e| format!("failed to save video file: {}", e))?;
 
-    println!("[net] video downloaded: {:?}", file_path);
+    println!("downloaded to: {:?}", file_path);
     Ok(file_path)
 }
 
 pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str) -> Result<(), String> {
-    // entry for creating wallpaper window
     if !std::path::Path::new(video_path).exists() {
         return Err(format!("Video file not found: {}", video_path));
     }
@@ -132,10 +125,10 @@ pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str) -> Resu
         .unwrap_or("");
 
     if !matches!(ext, "mp4" | "mkv") {
-        return Err(format!("Unsupported format: {}. Use MP4 or MKV", ext));
+        return Err(format!("Sadly... this is the Unsupported format: {}. The sites i scrape Use MP4 or MKV so this might be exceptional case", ext));
     }
 
-    println!("[wmf] create wallpaper: {}", video_path);
+    println!("Creating WMF video wallpaper for: {}", video_path);
 
     #[cfg(target_os = "windows")]
     {
@@ -160,24 +153,21 @@ pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str) -> Resu
     // Save state to disk for persistence
     let _ = save_wallpaper_state(&state);
 
-    println!("[wmf] state updated");
     Ok(())
 }
 
 #[cfg(target_os = "windows")]
 fn create_windows_wmf_wallpaper(video_path: &str) -> Result<(), String> {
-    // main entry for windows video wallpaper
     let video_path_abs = std::fs::canonicalize(video_path)
         .map_err(|e| format!("Failed to resolve video path: {}", e))?;
     let video_path_str = video_path_abs.display().to_string();
 
-    // CRITICAL FIX lol, take a guess?
-    let mut player_guard = WMF_PLAYER.lock().unwrap();
+    // CRITICAL FIX: Check if player already exists and just replace the video
+    let player_guard = WMF_PLAYER.lock().unwrap();
     
     if let Some(existing_player) = player_guard.as_ref() {
-        // hot swap video in running player
-        println!("[wmf] replace video (hot swap)");
-        println!("[wmf] stop current");
+        println!("INFO- replcing existing video wallpaper with new video");
+        println!("Stopping current playback...");
         
         // Stop current video
         if let Err(e) = existing_player.stop() {
@@ -186,39 +176,38 @@ fn create_windows_wmf_wallpaper(video_path: &str) -> Result<(), String> {
         
         thread::sleep(Duration::from_millis(200));
         
-        println!("[wmf] load new: {}", video_path_str);
+        println!("Loading new video: {}", video_path_str);
         existing_player.load_video(&video_path_str)?;
         
         thread::sleep(Duration::from_millis(500));
         
-        println!("[wmf] play new");
+        println!("Starting playback of new video...");
         existing_player.play()?;
         
-        println!("[wmf] replaced ok");
+        println!("Video preloaded and set!!!");
         return Ok(());
     }
     
-    // No existing player, create a new one
-    drop(player_guard); // Release lock before creating new player
+    drop(player_guard); // no lock before creating new player
     
-    println!("[wmf] create new player");
+    println!("wallpaper window: {}", video_path_str);
     
     let monitors = get_all_monitor_dimensions();
     let (desktop_x, desktop_y, desktop_width, desktop_height) = calculate_total_desktop_bounds(&monitors);
 
-    println!("[wmf] desktop bounds: {}x{} at ({}, {})", desktop_width, desktop_height, desktop_x, desktop_y);
+    println!("[INFO] Desktop bounds: {}x{} at ({}, {})", desktop_width, desktop_height, desktop_x, desktop_y);
 
     let player = wmf_player::WmfPlayer::new(desktop_width, desktop_height)
         .map_err(|e| format!("Failed to create WMF player: {}", e))?;
 
-    println!("[wmf] load: {}", video_path_str);
+    println!("[INFO] Loading video: {}", video_path_str);
     player.load_video(&video_path_str)?;
     
     // Wait for video to load
     thread::sleep(Duration::from_millis(500));
 
     let hwnd = player.hwnd();
-    println!("[wmf] player window: {:?}", hwnd);
+    println!("player window created: {:?}", hwnd);
     
     // Reduce thread priority to prevent GPU overload
     #[cfg(target_os = "windows")]
@@ -230,7 +219,7 @@ fn create_windows_wmf_wallpaper(video_path: &str) -> Result<(), String> {
         }
     }
     
-    println!("[wmf] inject behind desktop");
+    println!("[INFO] Injecting behind desktop...");
     desktop_injection::inject_behind_desktop(
         hwnd,
         desktop_x,
@@ -242,19 +231,18 @@ fn create_windows_wmf_wallpaper(video_path: &str) -> Result<(), String> {
     // Delay to ensure injection is complete
     thread::sleep(Duration::from_millis(300));
 
-    println!("[wmf] playback start");
+    println!("[INFO] Starting playback...");
     player.play()?;
 
     *WMF_PLAYER.lock().unwrap() = Some(player);
 
-    println!("[wmf] created ok");
+    println!("win created");
     Ok(())
 }
 
 #[cfg(target_os = "windows")]
 fn stop_windows_wmf_wallpaper() -> Result<(), String> {
-    // stop and cleanup for windows video wallpaper
-    println!("[wmf] stop wallpaper");
+    println!("we are stopping the Windows WMF wallpaper");
     
     // Stop watchdog first
     desktop_injection::stop_watchdog();
@@ -265,53 +253,47 @@ fn stop_windows_wmf_wallpaper() -> Result<(), String> {
     if let Some(player) = player_guard.take() {
         let hwnd = player.hwnd();
         
-        println!("[wmf] stop playback");
+        println!("[INFO] Stopping playback...");
         let _ = player.stop();
         thread::sleep(Duration::from_millis(300));
         
-        // Unparent and hide window before destroying
+        // unparent and hide window before destroying
         unsafe {
             use windows::Win32::UI::WindowsAndMessaging::{
                 SetParent, ShowWindow, SW_HIDE, IsWindow, DestroyWindow
             };
             
             if !hwnd.0.is_null() && IsWindow(Some(hwnd)).as_bool() {
-                println!("[wmf] cleanup window: {:?}", hwnd);
-                
+                println!("Cleaning up window: {:?}", hwnd);     
                 // Unparent the window from WorkerW (set parent to None)
                 let _ = SetParent(hwnd, None);
-                
-                // Hide the window immediately
-                let _ = ShowWindow(hwnd, SW_HIDE);
-                
-                // Give time for unparenting to complete
-                thread::sleep(Duration::from_millis(200));
-                
-                // Explicitly destroy the window
+                               // Hide the window immediately
+                let _ = ShowWindow(hwnd, SW_HIDE);                
+                    // Give time for unparenting to complete
+                thread::sleep(Duration::from_millis(200));               
+                // explicitly destroy the window
                 let _ = DestroyWindow(hwnd);
-                
-                println!("[wmf] window destroyed");
+                println!("[INFO] Window destroyed");
             }
         }
         
-        // Drop the player (Drop impl will clean up media engine and resources)
+        // (drop impl will clean up media engine and resources)
         drop(player);
-        println!("[wmf] player dropped");
+        println!("[INFO] Player dropped");
     } else {
         println!("[INFO] No active player to stop");
     }
     drop(player_guard);
     
-    // Give extra time for all cleanup to complete
+    // extra time for all cleanup to complete (just in case)
     thread::sleep(Duration::from_millis(500));
     
-    println!("[wmf] cleanup done");
+    println!("WMF wallpaper cleanup complete!!");
     Ok(())
 }
 
 #[cfg(target_os = "windows")]
 fn get_all_monitor_dimensions() -> Vec<MonitorInfo> {
-    // enumerate all monitors, fallback to 1920x1080 if none
     use windows::core::BOOL;
     use windows::Win32::Foundation::{LPARAM, RECT};
     use windows::Win32::Graphics::Gdi::{EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO};
@@ -372,7 +354,6 @@ struct MonitorInfo {
 
 #[cfg(target_os = "windows")]
 fn calculate_total_desktop_bounds(monitors: &[MonitorInfo]) -> (i32, i32, i32, i32) {
-    // union of all monitor bounds
     let min_x = monitors.iter().map(|m| m.x).min().unwrap_or(0);
     let min_y = monitors.iter().map(|m| m.y).min().unwrap_or(0);
     let max_x = monitors.iter().map(|m| m.x + m.width).max().unwrap_or(1920);
@@ -382,8 +363,7 @@ fn calculate_total_desktop_bounds(monitors: &[MonitorInfo]) -> (i32, i32, i32, i
 }
 
 pub fn stop_video_wallpaper(_app: &AppHandle) -> Result<(), String> {
-    // stop wallpaper and clear state
-    println!("[wmf] stop requested");
+    println!("stopping video wallpaper...");
 
     #[cfg(target_os = "windows")]
     {
@@ -400,48 +380,43 @@ pub fn stop_video_wallpaper(_app: &AppHandle) -> Result<(), String> {
     state.video_path = None;
     state.video_url = None;
     
-    // Save state to disk
     let _ = save_wallpaper_state(&state);
 
-    println!("[wmf] stopped");
+    println!("video wallpaper stopped!!");
     Ok(())
 }
 
 pub fn get_video_wallpaper_state() -> VideoWallpaperState {
-    // get current state
     VIDEO_WALLPAPER_STATE.lock().unwrap().clone()
 }
 
 pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
-    // restore wallpaper if state is active and file exists
     if let Some(saved_state) = load_wallpaper_state() {
         if saved_state.is_active {
             if let Some(ref video_path) = saved_state.video_path {
-                // Check if video file still exists
                 if std::path::Path::new(video_path).exists() {
-                    println!("[wmf] restore: {}", video_path);
+                    println!("found saved wallpaper, restoring: {}", video_path);
                     
                     // Give Windows a moment to stabilize (app just launched)
                     std::thread::sleep(std::time::Duration::from_millis(500));
                     
                     match create_video_wallpaper_window(app, video_path) {
                         Ok(_) => {
-                            println!("[wmf] restored ok");
+                            println!("video wallpaper restored successfully!!");
                             
-                            // Extra verification - make sure it's still there after a moment
+                            // we do verification for debugging purposes
                             std::thread::sleep(std::time::Duration::from_secs(2));
                             let state = get_video_wallpaper_state();
                             if state.is_active {
-                                println!("[wmf] verify: still active");
+                                println!("Wallpaper still active after 2 seconds lol");
                             } else {
-                                println!("[wmf] verify: deactivated");
+                                println!("Wallpaper was deactivated! Something destroyed it.");
                             }
                             
                             Ok(())
                         }
                         Err(e) => {
-                            println!("[wmf] restore fail: {}", e);
-                            // Clear invalid state
+                            println!("failed to restore wallpaper: {}", e);
                             let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
                             state.is_active = false;
                             state.video_path = None;
@@ -451,7 +426,7 @@ pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
                         }
                     }
                 } else {
-                    println!("[wmf] saved file missing: {}", video_path);
+                        println!("saved video file not found: {}", video_path);
                     // Clear invalid state
                     let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
                     state.is_active = false;
