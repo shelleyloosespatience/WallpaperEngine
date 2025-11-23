@@ -1,587 +1,66 @@
 'use client';
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Download, Trash2, HardDrive, Loader2, CheckCircle, Image, Play, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
+import { Image, Loader2 } from 'lucide-react';
 
-type WallpaperSourceOption = 'all' | 'picre' | 'wallhaven' | 'zerochan' | 'wallpapers' | 'moewalls' | 'wallpaperflare';
+import CustomTitleBar from './components/CustomTitleBar';
+import CompactHeader from './components/headers/CompactHeader';
+import ExpandedHeader from './components/headers/ExpandedHeader';
+import ImageModal from './components/ImageModal';
+import ImageCard from './components/ImageCard';
 
-interface PicReImage {
-  file_url: string;
-  md5: string;
-  tags: string[];
-  width: number;
-  height: number;
-  source: string;
-  author: string;
-  has_children: boolean;
-  _id: number;
-}
+import {
+  API_BASE_URL,
+  DEFAULT_FETCH_COUNT,
+  MAX_INPUT_LENGTH,
+  UNLOAD_THRESHOLD,
+} from './constants/wallpapers';
+import { PicReImage, WallpaperItem, WallpaperSourceOption } from './types/wallpaper';
 
-interface WallpaperItem {
-  id: string;
-  source: WallpaperSourceOption;
-  title?: string;
-  imageUrl: string;
-  thumbnailUrl?: string;
-  type?: 'image' | 'video';
-  width?: number;
-  height?: number;
-  tags?: string[];
-  metadata?: Record<string, unknown>;
-  detailUrl?: string; // <-- field for high-res detail URL
-  original?: any;
-}
-
-const API_BASE_URL = 'https://pic.re';
-const DEFAULT_FETCH_COUNT = 20;
-const MAX_INPUT_LENGTH = 100;
-const UNLOAD_THRESHOLD = 5; // Unload images 5 rows above/below viewport
-
-const SOURCE_OPTIONS: { value: WallpaperSourceOption; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'wallhaven', label: 'Wallhaven' },
-  { value: 'zerochan', label: 'Zerochan' },
-  { value: 'wallpapers', label: 'Wallpapers' },
-  { value: 'moewalls', label: 'Live2D' },
-  { value: 'wallpaperflare', label: 'WPFlare' },
-  { value: 'picre', label: 'pic.re' },
-];
-
-const GlobeIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="2" y1="12" x2="22" y2="12" />
-    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-  </svg>
-);
-
-const PaletteIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <circle cx="8" cy="10" r="1" fill="currentColor" />
-    <circle cx="12" cy="8" r="1" fill="currentColor" />
-    <circle cx="16" cy="10" r="1" fill="currentColor" />
-    <circle cx="14" cy="14" r="1" fill="currentColor" />
-    <path d="M12 22c1.5-2 3-3.5 3-6a3 3 0 0 0-6 0c0 2.5 1.5 4 3 6z" />
-  </svg>
-);
-
-const StarIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
-
-const CameraIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-    <circle cx="12" cy="13" r="4" />
-  </svg>
-);
-
-const SparklesIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" />
-  </svg>
-);
-
-const FlameIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-  </svg>
-);
-
-const BoltIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-  </svg>
-);
-
-const getSourceIcon = (source: WallpaperSourceOption) => {
-  switch (source) {
-    case 'all': return <GlobeIcon />;
-    case 'wallhaven': return <PaletteIcon />;
-    case 'zerochan': return <StarIcon />;
-    case 'wallpapers': return <CameraIcon />;
-    case 'moewalls': return <SparklesIcon />;
-    case 'wallpaperflare': return <FlameIcon />;
-    case 'picre': return <BoltIcon />;
-    default: return <CameraIcon />;
-  }
+const ensureAbsoluteUrl = (value: string) => {
+  if (!value) return '';
+  if (value.startsWith('data:') || value.startsWith('blob:')) return value;
+  if (value.startsWith('http://') || value.startsWith('https://')) return value;
+  if (value.startsWith('//')) return `https:${value}`;
+  if (value.startsWith('/')) return `https://${value.replace(/^\/+/, '')}`;
+  return `https://${value}`;
 };
 
-const LaxentaLogo = () => (
-  <div className="relative w-8 h-8">
-    <div className="absolute inset-0 rounded-full border-2 border-blue-500/40 animate-soundwave" />
-    <div className="absolute inset-0 rounded-full border-2 border-blue-400/30 animate-soundwave" style={{ animationDelay: '0.5s' }} />
-    <div className="absolute inset-0 rounded-full border-2 border-indigo-500/30 animate-soundwave" style={{ animationDelay: '1s' }} />
-    <div className="absolute inset-0 rounded-full border-2 border-indigo-400/20 animate-soundwave" style={{ animationDelay: '1.5s' }} />
-
-    <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-blue-500/50 z-10">
-      <img
-        src="/128x128.png"
-        alt="ColorWall uwugo"
-        className="w-full h-full object-cover"
-        onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-          e.currentTarget.style.display = 'none';
-          e.currentTarget.parentElement!.style.background = 'linear-gradient(135deg, #000, #000)';
-        }}
-      />
-    </div>
-  </div>
-);
-
-const ImageModal = ({
-  image,
-  onClose,
-  onSetWallpaper,
-  isLoading
-}: {
-  image: WallpaperItem;
-  onClose: () => void;
-  onSetWallpaper: (url: string) => void;
-  isLoading: boolean;
-}) => {
-  const [zoom, setZoom] = useState(1);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [displayUrl, setDisplayUrl] = useState<string>(image.thumbnailUrl || image.imageUrl);
-  const [highResUrl, setHighResUrl] = useState<string | null>(null);
-  const [isResolving, setIsResolving] = useState(false);
-  const hasResolvedRef = useRef(false);
-
-  useEffect(() => {
-    hasResolvedRef.current = false;
-    setIsResolving(false);
-
-    if (image.source === 'wallpaperflare' && image.detailUrl) {
-      setIsResolving(true);
-      (async () => {
-        try {
-          const result: any = await invoke('resolve_wallpaperflare_highres', { detailUrl: image.detailUrl });
-          if (result?.success && result?.url && !hasResolvedRef.current) {
-            hasResolvedRef.current = true;
-            setHighResUrl(result.url);
-            setDisplayUrl(result.url);
-            setImgLoaded(false);
-            setIsResolving(false);
-          }
-        } catch (e) {
-          console.error('[ERROR] Failed to resolve high-res:', e);
-          setIsResolving(false);
-        }
-      })();
-    } else {
-      setHighResUrl(image.imageUrl);
-    }
-  }, [image.id, image.detailUrl]);
-
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
-
-  const urlForWallpaper = highResUrl || displayUrl;
-
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    return false;
+const normalizePicReImage = (image: PicReImage): WallpaperItem => {
+  const fullUrl = image.file_url.startsWith('http') ? image.file_url : `https://${image.file_url}`;
+  return {
+    id: `picre-${image._id}-${image.md5}`,
+    source: 'picre',
+    title: image.source || `Wallpaper ${image._id}`,
+    imageUrl: fullUrl,
+    thumbnailUrl: fullUrl,
+    type: 'image',
+    width: image.width,
+    height: image.height,
+    tags: image.tags,
+    metadata: { author: image.author, hasChildren: image.has_children },
+    original: image,
   };
-
-  return (
-    <div
-      className="fixed inset-0 z-[9999] bg-black/98 backdrop-blur-xl flex pt-8"
-      onClick={onClose}
-      onContextMenu={handleContextMenu}
-    >
-      {/* LEFT: IMAGE AREA (75%) */}
-      <div className="flex-1 flex items-center justify-center p-8 pt-16 relative" onClick={(e) => e.stopPropagation()}>
-        <div className="absolute top-14 left-6 z-10 flex gap-2">
-          <button
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              e.stopPropagation();
-              setZoom(Math.min(zoom + 0.25, 3));
-            }}
-            className="p-2.5 bg-gray-900/95 hover:bg-gray-800 rounded-lg transition-all cursor-pointer border border-gray-800/50 shadow-lg backdrop-blur-sm"
-          >
-            <ZoomIn className="w-4 h-4 text-gray-300" />
-          </button>
-          <button
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              e.stopPropagation();
-              setZoom(Math.max(zoom - 0.25, 0.5));
-            }}
-            className="p-2.5 bg-gray-900/95 hover:bg-gray-800 rounded-lg transition-all cursor-pointer border border-gray-800/50 shadow-lg backdrop-blur-sm"
-          >
-            <ZoomOut className="w-4 h-4 text-gray-300" />
-          </button>
-          <button
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              e.stopPropagation();
-              setZoom(1);
-            }}
-            className="px-3 py-2.5 bg-gray-900/95 hover:bg-gray-800 rounded-lg transition-all text-xs text-gray-300 cursor-pointer border border-gray-800/50 shadow-lg backdrop-blur-sm font-medium"
-          >
-            Reset
-          </button>
-        </div>
-
-        {isResolving && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none z-20">
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-gradient-to-r from-blue-600/90 via-indigo-600/90 to-purple-600/90 backdrop-blur-md px-5 py-3 rounded-full border border-blue-400/30 shadow-2xl shadow-blue-500/50 animate-pulse">
-              <div className="relative">
-                <Loader2 className="w-5 h-5 animate-spin text-white" />
-                <div className="absolute inset-0 blur-md bg-white/30 rounded-full animate-spin" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm text-white font-bold tracking-wide">Fetching HD Quality</span>
-                <span className="text-xs text-blue-100">Please wait...</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <img
-          key={displayUrl}
-          src={displayUrl}
-          alt={image.title || 'Wallpaper'}
-          className={`max-w-full max-h-full object-contain transition-all duration-500 rounded-lg ${imgLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-          style={{ transform: `scale(${zoom})` }}
-          onLoad={() => setImgLoaded(true)}
-          onError={() => setImgLoaded(true)}
-          onContextMenu={handleContextMenu}
-          draggable={false}
-        />
-      </div>
-      {/* sidebar */}
-      <div
-        className="w-96 bg-black/95 backdrop-blur-2xl border-l border-gray-900 flex flex-col shadow-2xl pt-8"
-        onClick={(e) => e.stopPropagation()}
-        onContextMenu={handleContextMenu}
-      >
-        <div className="px-4 py-3 border-b border-gray-900/50">
-          <button
-            onClick={onClose}
-            className="w-full flex items-center justify-center gap-2 p-2.5 bg-gray-900/80 hover:bg-gray-800 rounded-lg transition-all cursor-pointer border border-gray-800/50 group"
-          >
-            <X className="w-4 h-4 text-gray-500 group-hover:text-gray-300 transition-colors" />
-            <span className="text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors">Close</span>
-          </button>
-        </div>
-
-        {/* Info Section */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Title */}
-          <div>
-            <h3 className="text-base font-bold text-gray-200 mb-2">{image.title || 'Untitled'}</h3>
-            <div className="inline-flex items-center gap-2 bg-blue-500/10 px-2.5 py-1.5 rounded-lg border border-blue-500/20">
-              {getSourceIcon(image.source)}
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
-                {image.source}
-              </span>
-            </div>
-          </div>
-
-          {/* Dimensions */}
-          {image.width && image.height && (
-            <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800/50">
-              <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Dimensions</div>
-              <div className="text-xl font-bold text-gray-200 font-mono">
-                {image.width} × {image.height}
-              </div>
-              <div className="text-xs text-gray-600 mt-1">
-                {(image.width / image.height).toFixed(2)} aspect ratio
-              </div>
-            </div>
-          )}
-
-          {/* Tags */}
-          {image.tags && image.tags.length > 0 && (
-            <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800/50">
-              <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Tags</div>
-              <div className="flex flex-wrap gap-1.5">
-                {image.tags.slice(0, 10).map((tag, idx) => (
-                  <span
-                    key={idx}
-                    className="px-2 py-1 bg-gray-800/50 text-gray-400 rounded-md text-xs font-medium border border-gray-700/50"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          {image.type === 'video' && (
-            <div className="bg-emerald-500/10 rounded-lg p-3 border border-emerald-500/20">
-              <div className="flex items-center gap-2 text-emerald-400">
-                <Play className="w-4 h-4" />
-                <span className="text-sm font-semibold">Live2D Wallpaper</span>
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="p-4 border-t border-gray-900/50 space-y-2">
-          <a
-            href={urlForWallpaper}
-            download
-            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
-            onContextMenu={handleContextMenu}
-            className="w-full flex items-center justify-center gap-2 bg-gray-900/80 hover:bg-gray-800 text-white px-4 py-3 rounded-lg transition-all font-medium shadow-lg cursor-pointer border border-gray-800/50 text-sm"
-          >
-            <Download className="w-4 h-4" />
-            Download
-          </a>
-
-          {image.type !== 'video' && (
-            <button
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                e.stopPropagation();
-                onSetWallpaper(urlForWallpaper);
-              }}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg transition-all font-medium shadow-xl shadow-blue-500/20 cursor-pointer text-sm"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Setting...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  Set as Wallpaper
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 };
 
-const ImageCard = ({
-  image,
-  onSelect,
-  isVisible
-}: {
-  image: WallpaperItem;
-  onSelect: () => void;
-  isVisible: boolean;
-}) => {
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [imgError, setImgError] = useState(false);
-  const [shouldLoad, setShouldLoad] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isVisible) {
-      setShouldLoad(false);
-      setImgLoaded(false);
-      if (imgRef.current) {
-        imgRef.current.src = '';
-      }
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShouldLoad(true);
-        }
-      },
-      { rootMargin: '200px' }
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [isVisible]);
-
-  useEffect(() => {
-    if (shouldLoad && imgRef.current && !imgRef.current.src) {
-      const src = image.thumbnailUrl || image.imageUrl;
-      imgRef.current.src = src;
-    }
-  }, [shouldLoad, image]);
-
-  return (
-    <div
-      ref={cardRef}
-      className="group relative bg-black/70 rounded-xl overflow-hidden border border-gray-900/50 hover:border-blue-500/30 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl hover:shadow-blue-500/10 backdrop-blur-sm animate-fadeIn break-inside-avoid mb-4"
-      onClick={onSelect}
-      style={{ height: 'auto' }}
-    >
-      <div
-        className="relative overflow-hidden bg-black flex items-center justify-center"
-        style={{ height: 'auto' }}
-      >
-        {!imgLoaded && !imgError && shouldLoad && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-6 h-6 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-          </div>
-        )}
-
-        {shouldLoad ? (
-          <img
-            ref={imgRef}
-            alt={image.title ?? `Wallpaper ${image.id}`}
-            className={`w-full h-auto object-contain group-hover:scale-105 transition-all duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
-            loading="lazy"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgError(true)}
-            onContextMenu={(e: React.MouseEvent) => {
-              e.preventDefault();
-              return false;
-            }}
-            draggable={false}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gray-950 flex items-center justify-center">
-            <div className="w-6 h-6 border-2 border-gray-800 border-t-gray-700 rounded-full animate-spin" />
-          </div>
-        )}
-
-        {imgError && (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-700">
-            <div className="text-center">
-              <Image className="w-6 h-6 mx-auto mb-2 opacity-50" />
-              <span className="text-xs">Failed to load</span>
-            </div>
-          </div>
-        )}
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-          {image.type === 'video' ? (
-            <div className="flex items-center gap-2 bg-emerald-500/90 px-4 py-2 rounded-full text-sm font-semibold">
-              <Play className="w-4 h-4" />
-              View Live2D
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-blue-500/90 px-4 py-2 rounded-full text-sm font-semibold">
-              <ZoomIn className="w-4 h-4" />
-              View Full Size
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="p-3 bg-black/90 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
-            {getSourceIcon(image.source)}
-            <span>{image.source}</span>
-          </span>
-          {image.width && image.height && (
-            <span className="text-xs text-gray-600 font-mono">
-              {image.width}×{image.height}
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-gray-400 truncate" title={image.title}>
-          {image.title || 'Untitled'}
-        </p>
-      </div>
-    </div>
-  );
-};
-
-// fk tauri, i had to debug this for 30 minutes to figure out tauri was silently blocking it :sob: 
-// while i tried to find z indexes or overlaps or cursor pointers lmao
-const CustomTitleBar = () => {
-  const [isMaximized, setIsMaximized] = useState(false);
-
-  const minimize = async () => {
-    console.log('[DEBUG] Minimize button clicked!');
-    try {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      console.log('[DEBUG] Window API imported');
-      const window = getCurrentWindow();
-      console.log('[DEBUG] Got current window:', window);
-      await window.minimize();
-      console.log('[SUCCESS] Window minimized');
-    } catch (err) {
-      console.error('[ERROR] Minimize failed:', err);
-      alert('Minimize failed: ' + err);
-    }
+const normalizeExternalItem = (item: any): WallpaperItem => {
+  const source = (item?.source ?? 'wallhaven') as WallpaperSourceOption;
+  return {
+    id: item?.id ?? `${source}-${Math.random().toString(36).slice(2, 10)}`,
+    source,
+    title: item?.title ?? item?.metadata?.title ?? item?.id ?? source.toUpperCase(),
+    imageUrl: ensureAbsoluteUrl(item?.imageUrl ?? item?.thumbnailUrl ?? ''),
+    thumbnailUrl: ensureAbsoluteUrl(item?.thumbnailUrl ?? item?.imageUrl ?? ''),
+    type: item?.type === 'video' ? 'video' : 'image',
+    width: item?.width,
+    height: item?.height,
+    tags: Array.isArray(item?.tags) ? item.tags : [],
+    metadata: item?.metadata ?? {},
+    detailUrl: item?.detailUrl,
+    original: item,
   };
-  const toggleMaximize = async () => {
-    console.log('[DEBUG] Maximize button clicked!');
-    try {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      console.log('[DEBUG] Window API imported from tauri win api, what about linux? it might not work on some sorry man if u see this');
-      const appWindow = getCurrentWindow();
-      console.log('[DEBUG] Got current window:', appWindow);
-      const currentMaximized = await appWindow.isMaximized();
-      console.log('[DEBUG] Current maximized state:', currentMaximized);
-      await appWindow.toggleMaximize();
-      const newMaximized = await appWindow.isMaximized();
-      console.log('[DEBUG] New maximized state:', newMaximized);
-      setIsMaximized(newMaximized);
-      console.log('[SUCCESS] Window toggled');
-    } catch (err) {
-      console.error('[ERROR] Maximize failed:', err);
-      alert('Maximize failed: ' + err);
-    }
-  };
-  const close = async () => {
-    console.log('[DEBUG] Close button clicked ;=;');
-    try {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      console.log('[DEBUG] Window API imported');
-      const window = getCurrentWindow();
-      console.log('[DEBUG] Got current window:', window);
-      await window.close();
-      console.log('[SUCCESS] Window closed');
-    } catch (err) {
-      console.error('[ERROR] Close failed:', err);
-      alert('Close failed: ' + err);
-    }
-  };
-  return (
-    <div className="fixed top-0 left-0 right-0 h-8 bg-black/98 backdrop-blur-xl border-b border-gray-900/50 flex items-center justify-between px-3 z-[99999] select-none">
-      <div
-        data-tauri-drag-region
-        className="flex items-center gap-2 flex-1 h-full"
-      >
-        <div className="w-5 h-5 relative pointer-events-none">
-          <img src="/128x128.png" alt="" className="w-full h-full object-contain" />
-        </div>
-        <span className="text-xs font-semibold text-gray-500">ColorWall</span>
-      </div>
-
-      {/* Window controls */}
-      <div className="flex items-center relative z-10">
-        <button
-          onClick={minimize}
-          className="w-12 h-8 flex items-center justify-center hover:bg-gray-800/50 transition-colors text-gray-400 hover:text-gray-200 cursor-default"
-          style={{ WebkitAppRegion: 'no-drag' } as any}
-        >
-          <span className="text-xl leading-none mb-1">−</span>
-        </button>
-        <button
-          onClick={toggleMaximize}
-          className="w-12 h-8 flex items-center justify-center hover:bg-gray-800/50 transition-colors text-gray-400 hover:text-gray-200 cursor-default"
-          style={{ WebkitAppRegion: 'no-drag' } as any}
-        >
-          <span className="text-sm leading-none">{isMaximized ? '❐' : '□'}</span>
-        </button>
-        <button
-          onClick={close}
-          className="w-12 h-8 flex items-center justify-center hover:bg-red-600 transition-colors text-gray-400 hover:text-white cursor-default"
-          style={{ WebkitAppRegion: 'no-drag' } as any}
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
 };
 
 export default function WallpaperEngine() {
@@ -593,6 +72,8 @@ export default function WallpaperEngine() {
   const [cacheInfo, setCacheInfo] = useState({ sizeMB: '0', fileCount: 0 });
   const [currentWallpaper, setCurrentWallpaper] = useState('');
   const [settingWallpaper, setSettingWallpaper] = useState<string | null>(null);
+  const [videoWallpaperState, setVideoWallpaperState] = useState({ isActive: false, videoPath: null as string | null, videoUrl: null as string | null });
+  const [isTogglingLive, setIsTogglingLive] = useState(false);
   const [selectedSource, setSelectedSource] = useState<WallpaperSourceOption>('all');
   const [selectedImage, setSelectedImage] = useState<WallpaperItem | null>(null);
   const [isHeaderCompact, setIsHeaderCompact] = useState(false);
@@ -604,11 +85,83 @@ export default function WallpaperEngine() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
+  const loadCacheInfo = useCallback(async () => {
+    try {
+      const result: any = await invoke('get_cache_size');
+      if (result?.success) {
+        setCacheInfo({ sizeMB: result.sizeMb, fileCount: result.fileCount });
+      }
+    } catch (error) {
+      console.error('[ERROR] Cache load failed:', error);
+    }
+  }, []);
+
+  const loadCurrentWallpaper = useCallback(async () => {
+    try {
+      const result: any = await invoke('get_current_wallpaper');
+      if (result?.success && result?.message) {
+        setCurrentWallpaper(result.message);
+      }
+    } catch (error) {
+      console.error('[ERROR] Wallpaper get failed:', error);
+    }
+  }, []);
+
+  const loadVideoWallpaperState = useCallback(async () => {
+    try {
+      const state: any = await invoke('get_video_wallpaper_status');
+      setVideoWallpaperState({
+        isActive: state.isActive || false,
+        videoPath: state.videoPath || null,
+        videoUrl: state.videoUrl || null,
+      });
+    } catch (error) {
+      console.error('[ERROR] Video wallpaper state load failed:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    console.log('[INFO] Wallpaper Engine initialized');
     loadCacheInfo();
     loadCurrentWallpaper();
+    loadVideoWallpaperState();
+  }, [loadCacheInfo, loadCurrentWallpaper, loadVideoWallpaperState]);
+
+  // Listen to video wallpaper state changes
+  useEffect(() => {
+    const unlisten = listen('video-wallpaper-changed', (event: any) => {
+      const state = event.payload as any;
+      setVideoWallpaperState({
+        isActive: state.isActive || false,
+        videoPath: state.videoPath || null,
+        videoUrl: state.videoUrl || null,
+      });
+    });
+
+    return () => {
+      unlisten.then(fn => fn());
+    };
   }, []);
+
+  const handleToggleLiveWallpaper = useCallback(async () => {
+    if (isTogglingLive) return;
+    
+    setIsTogglingLive(true);
+    try {
+      const result: any = await invoke('toggle_video_wallpaper', { 
+        enable: !videoWallpaperState.isActive 
+      });
+      if (result?.success) {
+        await loadVideoWallpaperState();
+      } else {
+        alert('Failed: ' + (result?.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('[ERROR] Toggle failed:', error);
+      alert('Error: ' + error);
+    } finally {
+      setIsTogglingLive(false);
+    }
+  }, [videoWallpaperState.isActive, isTogglingLive, loadVideoWallpaperState]);
 
   useEffect(() => {
     let ticking = false;
@@ -641,7 +194,7 @@ export default function WallpaperEngine() {
       const scrollTop = window.scrollY;
       const viewportHeight = window.innerHeight;
       const itemHeight = 300;
-      const itemsPerRow = Math.floor(window.innerWidth / 400); // approx items per row
+      const itemsPerRow = Math.floor(window.innerWidth / 400);
 
       const startRow = Math.max(0, Math.floor((scrollTop - viewportHeight) / itemHeight) - UNLOAD_THRESHOLD);
       const endRow = Math.ceil((scrollTop + viewportHeight * 2) / itemHeight) + UNLOAD_THRESHOLD;
@@ -665,7 +218,7 @@ export default function WallpaperEngine() {
 
     window.addEventListener('scroll', throttledHandler, { passive: true });
     window.addEventListener('resize', throttledHandler, { passive: true });
-    handleVisibility(); // initial calc
+    handleVisibility();
 
     return () => {
       window.removeEventListener('scroll', throttledHandler);
@@ -673,14 +226,114 @@ export default function WallpaperEngine() {
     };
   }, [wallpapers.length]);
 
+  const fetchWallpapers = useCallback(
+    async (pageNum: number = 1, append: boolean = false) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setWallpapers([]);
+        setPage(1);
+        setHasMore(true);
+      }
+
+      try {
+        const includeTags = searchTags.split(' ').filter((t) => t.trim());
+        const excludeTagsArray = excludeTags.split(' ').filter((t) => t.trim());
+        const queryString = includeTags.join(' ');
+
+        if (selectedSource === 'picre') {
+          const params: Record<string, string> = { compress: 'false' };
+          if (includeTags.length > 0) params.in = includeTags.join(',');
+          if (excludeTagsArray.length > 0) params.of = excludeTagsArray.join(',');
+
+          const promises = Array(DEFAULT_FETCH_COUNT)
+            .fill(null)
+            .map(() =>
+              fetch(`${API_BASE_URL}/image?${new URLSearchParams(params)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'User-Agent': 'WallpaperApp/1.0' },
+              }).then((res) => res.json())
+            );
+
+          const results = await Promise.allSettled(promises);
+          const images = results
+            .filter((r): r is PromiseFulfilledResult<PicReImage> => r.status === 'fulfilled' && r.value)
+            .map((r) => r.value);
+
+          if (images.length === 0) {
+            if (!append) alert('No images found. Try different tags.');
+            setHasMore(false);
+          } else {
+            const normalized = images.map(normalizePicReImage);
+            if (append) {
+              setWallpapers((prev) => [...prev, ...normalized]);
+            } else {
+              setWallpapers(normalized);
+            }
+          }
+          return;
+        }
+
+        let backendSources: string[] | undefined;
+        if (selectedSource !== 'all') {
+          backendSources = [selectedSource];
+        } else {
+          backendSources = ['wallhaven', 'zerochan', 'moewalls', 'wallpapers', 'wallpaperflare', 'motionbgs'];
+        }
+
+        const response: any = await invoke('search_wallpapers', {
+          query: queryString || 'anime',
+          sources: backendSources,
+          limitPerSource: DEFAULT_FETCH_COUNT,
+          randomize: true,
+          page: pageNum,
+          purity: '100',
+          aiArt: false,
+        });
+
+        if (!response?.items || response.items.length === 0) {
+          if (!append) alert('No wallpapers found. Try different filters.');
+          setHasMore(false);
+          return;
+        }
+
+        const normalized = (response.items as any[]).map(normalizeExternalItem).filter((item) => item.imageUrl);
+        let newWallpapers: WallpaperItem[] = [];
+
+        if (append) {
+          setWallpapers((prev) => {
+            const existingIds = new Set(prev.map((w) => w.id));
+            newWallpapers = normalized.filter((item) => !existingIds.has(item.id));
+            return [...prev, ...newWallpapers];
+          });
+        } else {
+          newWallpapers = normalized;
+          setWallpapers(newWallpapers);
+        }
+
+        if (newWallpapers.length < DEFAULT_FETCH_COUNT / 2) {
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error('[ERROR] Fetch failed:', error);
+        if (!append) alert('Error fetching wallpapers: ' + error);
+        setHasMore(false);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [excludeTags, searchTags, selectedSource]
+  );
+
   const loadMoreWallpapers = useCallback(() => {
     if (!hasMore || loadingMore) return;
     const nextPage = page + 1;
     setPage(nextPage);
     fetchWallpapers(nextPage, true);
-  }, [page, hasMore, loadingMore, wallpapers]);
+  }, [fetchWallpapers, hasMore, loadingMore, page]);
 
-  // scroll observer
   useEffect(() => {
     if (!hasMore || loadingMore) return;
 
@@ -697,241 +350,57 @@ export default function WallpaperEngine() {
       observerRef.current.observe(sentinelRef.current);
     }
 
-
-
     return () => observerRef.current?.disconnect();
   }, [hasMore, loadingMore, loadMoreWallpapers]);
 
-  const loadCacheInfo = async () => {
-    try {
-      const result: any = await invoke('get_cache_size');
-      if (result.success) {
-        setCacheInfo({ sizeMB: result.sizeMb, fileCount: result.fileCount });
-        // console.log(`[SUCCESS] Cache: ${result.sizeMb}MB, ${result.fileCount} files`);
+  const setAsWallpaper = useCallback(
+    async (image: WallpaperItem, resolvedUrl?: string) => {
+      if (image.type === 'video') {
+        window.open(image.imageUrl, '_blank');
+        return;
       }
-    } catch (error) {
-      console.error('[ERROR] Cache load failed:', error);
-    }
-  };
 
-  const loadCurrentWallpaper = async () => {
-    try {
-      const result: any = await invoke('get_current_wallpaper');
-      if (result.success && result.message) {
-        setCurrentWallpaper(result.message);
-        // console.log(`[INFO] Current wallpaper: ${result.message.split('/').pop()}`);
-      }
-    } catch (error) {
-      console.error('[ERROR] Wallpaper get failed:', error);
-    }
-  };
+      setSettingWallpaper(image.id);
 
-  const normalizePicReImage = (image: PicReImage): WallpaperItem => {
-    const fullUrl = image.file_url.startsWith('http') ? image.file_url : `https://${image.file_url}`;
-    return {
-      id: `picre-${image._id}-${image.md5}`,
-      source: 'picre',
-      title: image.source || `Wallpaper ${image._id}`,
-      imageUrl: fullUrl,
-      thumbnailUrl: fullUrl,
-      type: 'image',
-      width: image.width,
-      height: image.height,
-      tags: image.tags,
-      metadata: { author: image.author, hasChildren: image.has_children },
-      original: image,
-    };
-  };
+      try {
+        let finalUrl = resolvedUrl || image.imageUrl;
 
-  const ensureAbsoluteUrl = (value: string) => {
-    if (!value) return '';
-    if (value.startsWith('data:') || value.startsWith('blob:')) return value;
-    if (value.startsWith('http://') || value.startsWith('https://')) return value;
-    if (value.startsWith('//')) return `https:${value}`;
-    if (value.startsWith('/')) return `https://${value.replace(/^\/+/, '')}`;
-    return `https://${value}`;
-  };
+        if (!resolvedUrl && image.source === 'wallpaperflare' && image.detailUrl) {
+          try {
+            const result: any = await invoke('resolve_wallpaperflare_highres', { detailUrl: image.detailUrl });
+            if (result?.success && result?.url) {
+              finalUrl = result.url;
+            }
+          } catch (e) {
+            console.warn('[WARN] Failed to resolve high-res, using thumbnail:', e);
+          }
+        }
 
-  const normalizeExternalItem = (item: any): WallpaperItem => {
-    const source = (item?.source ?? 'wallhaven') as WallpaperSourceOption;
-    return {
-      id: item?.id ?? `${source}-${Math.random().toString(36).slice(2, 10)}`,
-      source,
-      title: item?.title ?? item?.metadata?.title ?? item?.id ?? source.toUpperCase(),
-      imageUrl: ensureAbsoluteUrl(item?.imageUrl ?? item?.thumbnailUrl ?? ''),
-      thumbnailUrl: ensureAbsoluteUrl(item?.thumbnailUrl ?? item?.imageUrl ?? ''),
-      type: item?.type === 'video' ? 'video' : 'image',
-      width: item?.width,
-      height: item?.height,
-      tags: Array.isArray(item?.tags) ? item.tags : [],
-      metadata: item?.metadata ?? {},
-      detailUrl: item?.detailUrl,
-      original: item,
-    };
-  };
+        const result: any = await invoke('set_wallpaper', { imageUrl: finalUrl });
 
-  const fetchWallpapers = async (pageNum: number = 1, append: boolean = false) => {
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-      setWallpapers([]);
-      setPage(1);
-      setHasMore(true);
-    }
-
-    try {
-      const includeTags = searchTags.split(' ').filter(t => t.trim());
-      const excludeTagsArray = excludeTags.split(' ').filter(t => t.trim());
-      const queryString = includeTags.join(' ');
-
-      if (selectedSource === 'picre') {
-        console.log(`[INFO] Fetching from pic.re page ${pageNum}: [${includeTags.join(', ')}]`);
-        const params: Record<string, string> = { compress: 'false' };
-        if (includeTags.length > 0) params.in = includeTags.join(',');
-        if (excludeTagsArray.length > 0) params.of = excludeTagsArray.join(',');
-
-        const promises = Array(DEFAULT_FETCH_COUNT).fill(null).map(() =>
-          fetch(`${API_BASE_URL}/image?${new URLSearchParams(params)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'User-Agent': 'WallpaperApp/1.0' }
-          }).then(res => res.json())
-        );
-
-        const results = await Promise.allSettled(promises);
-        const images = results
-          .filter((r): r is PromiseFulfilledResult<PicReImage> => r.status === 'fulfilled' && r.value)
-          .map(r => r.value);
-
-        if (images.length === 0) {
-          console.warn('[WARN] No images found');
-          if (!append) alert('No images found. Try different tags.');
-          setHasMore(false);
+        if (result.success) {
+          setCurrentWallpaper(finalUrl);
+          setSelectedImage(null);
+          await loadCacheInfo();
         } else {
-          const normalized = images.map(normalizePicReImage);
-          if (append) {
-            setWallpapers(prev => [...prev, ...normalized]);
-          } else {
-            setWallpapers(normalized);
-          }
-          console.log(`[SUCCESS] Loaded ${images.length} wallpapers`);
+          alert('Failed to set wallpaper: ' + result.error);
         }
-        return;
+      } catch (error) {
+        console.error('[ERROR] Exception setting wallpaper:', error);
+        alert('Error: ' + error);
+      } finally {
+        setSettingWallpaper(null);
       }
+    },
+    [loadCacheInfo]
+  );
 
-      console.log(`[INFO] Fetching from ${selectedSource} page ${pageNum}: "${queryString}"`);
-
-      let backendSources: string[] | undefined;
-      if (selectedSource !== 'all') {
-        backendSources = [selectedSource];
-      } else {
-        backendSources = ['wallhaven', 'zerochan', 'moewalls', 'wallpapers', 'wallpaperflare'];
-      }
-
-      const response: any = await invoke('search_wallpapers', {
-        query: queryString || 'anime',
-        sources: backendSources,
-        limitPerSource: DEFAULT_FETCH_COUNT,
-        randomize: true,
-        page: pageNum,
-        purity: '100',
-        aiArt: false,
-      });
-
-      if (!response?.items || response.items.length === 0) {
-        console.warn('[WARN] No items returned');
-        if (!append) alert('No wallpapers found. Try different filters.');
-        setHasMore(false);
-        return;
-      }
-
-      const normalized = (response.items as any[])
-        .map(normalizeExternalItem)
-        .filter(item => item.imageUrl);
-
-      // dupe by id
-      let newWallpapers: WallpaperItem[] = [];
-      if (append) {
-        const existingIds = new Set(wallpapers.map(w => w.id));
-        newWallpapers = normalized.filter(item => !existingIds.has(item.id));
-        setWallpapers(prev => [...prev, ...newWallpapers]);
-      } else {
-        newWallpapers = normalized;
-        setWallpapers(newWallpapers);
-      }
-
-      // if we got less than expected (ex we ask 20 it gave 19, it means the prov is out of wallpapers for the tag), stop loading more
-      if (newWallpapers.length < DEFAULT_FETCH_COUNT / 2) {
-        setHasMore(false);
-      }
-
-    } catch (error) {
-      console.error('[ERROR] Fetch failed:', error);
-      if (!append) alert('Error fetching wallpapers: ' + error);
-      setHasMore(false);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  };
-
-  const setAsWallpaper = async (image: WallpaperItem, resolvedUrl?: string) => {
-    if (image.type === 'video') {
-      console.log('[INFO] Opening video:', image.imageUrl);
-      window.open(image.imageUrl, '_blank');
-      return;
-    }
-
-    setSettingWallpaper(image.id);
-
-    try {
-      let finalUrl = resolvedUrl || image.imageUrl;
-      console.log('[DEBUG] Initial URL:', finalUrl);
-      console.log('[DEBUG] Resolved URL provided?', !!resolvedUrl);
-      console.log('[DEBUG] Image source:', image.source);
-      console.log('[DEBUG] Detail URL:', image.detailUrl);
-
-      if (!resolvedUrl && image.source === 'wallpaperflare' && image.detailUrl) {
-        console.log('[INFO] No resolved URL provided, fetching high-res...');
-        try {
-          const result: any = await invoke('resolve_wallpaperflare_highres', { detailUrl: image.detailUrl });
-          console.log('[DEBUG] Resolve result:', result);
-          if (result?.success && result?.url) {
-            finalUrl = result.url;
-            console.log('[SUCCESS] Using high-res URL:', finalUrl);
-          }
-        } catch (e) {
-          console.warn('[WARN] Failed to resolve high-res, using thumbnail:', e);
-        }
-      }
-
-      console.log('[INFO] Setting wallpaper with URL:', finalUrl);
-      const result: any = await invoke('set_wallpaper', { imageUrl: finalUrl });
-
-      if (result.success) {
-        console.log('[SUCCESS] Wallpaper set successfully :3');
-        setCurrentWallpaper(finalUrl);
-        setSelectedImage(null);
-        await loadCacheInfo();
-      } else {
-        console.error('[ERROR] Failed to set wallpaper:', result.error);
-        alert('Failed to set wallpaper: ' + result.error);
-      }
-    } catch (error) {
-      console.error('[ERROR] Exception setting wallpaper:', error);
-      alert('Error: ' + error);
-    } finally {
-      setSettingWallpaper(null);
-    }
-  };
-
-  const clearCache = async () => {
+  const clearCache = useCallback(async () => {
     if (!confirm('Clear all cached wallpapers?')) return;
 
     try {
       const result: any = await invoke('clear_cache');
-      if (result.success) {
-        console.log(`[SUCCESS] Cleared ${result.filesDeleted} files`);
+      if (result?.success) {
         alert(`Cache cleared: ${result.filesDeleted} files deleted`);
         await loadCacheInfo();
       }
@@ -939,9 +408,8 @@ export default function WallpaperEngine() {
       console.error('[ERROR] Clear cache failed:', error);
       alert('Failed to clear cache: ' + error);
     }
-  };
+  }, [loadCacheInfo]);
 
-  // F11 toggle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F11') {
@@ -962,7 +430,13 @@ export default function WallpaperEngine() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-  //  yes i have css here
+
+  const handleExpandHeader = useCallback(() => {
+    setIsHeaderCompact(false);
+    setShowExpandedHeader(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   return (
     <div
       className="min-h-screen bg-black text-gray-100 relative pt-8"
@@ -994,7 +468,6 @@ export default function WallpaperEngine() {
           animation: soundwave 2s ease-out infinite;
         }
 
-        /* CUSTOM SCROLLBAR - NEW */
         * {
           scrollbar-width: thin;
           scrollbar-color: #3b82f6 #0a0a0a;
@@ -1054,7 +527,6 @@ export default function WallpaperEngine() {
           app-region: no-drag !important;
         }
 
-        /* DISABLE RIGHT CLICK - NEW */
         img {
           pointer-events: auto;
           -webkit-user-drag: none;
@@ -1069,149 +541,31 @@ export default function WallpaperEngine() {
         <ImageModal
           image={selectedImage}
           onClose={() => setSelectedImage(null)}
-          onSetWallpaper={(url) => setAsWallpaper(selectedImage, url)} // <-- Pass resolved URL
+          onSetWallpaper={(url) => setAsWallpaper(selectedImage, url)}
           isLoading={settingWallpaper === selectedImage.id}
         />
       )}
-      <div
-        className={`fixed top-8 left-0 right-0 z-50 transition-all duration-500 ease-out ${isHeaderCompact
-            ? 'translate-y-0 opacity-100'
-            : '-translate-y-full opacity-0 pointer-events-none'
-          }`}
-      >
-        <div className="bg-black/98 backdrop-blur-xl border-b border-gray-900 shadow-2xl">
-          <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between">
-            <button
-              onClick={() => {
-                setIsHeaderCompact(false);
-                setShowExpandedHeader(true);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="flex items-center gap-2.5 hover:opacity-80 transition-opacity cursor-pointer"
-            >
-              <LaxentaLogo />
-              <span className="text-base font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                ColorWall
-              </span>
-            </button>
 
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-2 bg-gray-950/80 px-3 py-1.5 rounded-lg border border-gray-900">
-                <HardDrive className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-xs font-semibold text-gray-400">{cacheInfo.sizeMB} MB</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div
-        className={`bg-black/98 backdrop-blur-xl border-b border-gray-900 sticky top-8 z-40 shadow-2xl transition-all duration-500 ease-out ${showExpandedHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
-          }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 py-4 relative z-10">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
-              <LaxentaLogo />
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                  ColorWall
-                </h1>
-                <p className="text-xs text-gray-600">
-                  Laxenta Inc
-                </p>
-                <p className="text-xs text-gray-700">
-                  https://laxenta.tech
-                </p>
-              </div>
-            </div>
+      <CompactHeader cacheInfo={cacheInfo} isHeaderCompact={isHeaderCompact} onExpand={handleExpandHeader} />
 
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-2 bg-gray-950/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-gray-900">
-                <HardDrive className="w-4 h-4 text-blue-400" />
-                <span className="text-sm font-semibold text-gray-400">{cacheInfo.sizeMB} MB</span>
-                <span className="text-xs text-gray-600">({cacheInfo.fileCount})</span>
-              </div>
-              <button
-                onClick={clearCache}
-                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-2 rounded-lg transition-all border border-red-500/20 hover:border-red-500/40 text-sm font-medium cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4" />
-                Clear
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-2 scrollbar-hide">
-            {SOURCE_OPTIONS.map((source) => (
-              <button
-                key={source.value}
-                onClick={() => setSelectedSource(source.value)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap cursor-pointer ${selectedSource === source.value
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
-                    : 'bg-gray-950/80 text-gray-500 hover:bg-gray-900 hover:text-gray-400 border border-gray-900'
-                  }`}
-              >
-                {getSourceIcon(source.value)}
-                <span>{source.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-2.5">
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-600" />
-              <input
-                type="text"
-                value={searchTags}
-                onChange={(e) => setSearchTags(e.target.value.slice(0, MAX_INPUT_LENGTH))}
-                onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && fetchWallpapers()}
-                placeholder="anime..."
-                maxLength={MAX_INPUT_LENGTH}
-                className="w-full bg-gray-950/80 backdrop-blur-sm border border-gray-900 rounded-lg pl-11 pr-4 py-3 text-gray-200 placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
-              />
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-800 font-mono">
-                {searchTags.length}/{MAX_INPUT_LENGTH}
-              </span>
-            </div>
-
-            <div className="flex gap-2.5">
-              <input
-                type="text"
-                value={excludeTags}
-                onChange={(e) => setExcludeTags(e.target.value.slice(0, MAX_INPUT_LENGTH))}
-                onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && fetchWallpapers()}
-                placeholder="Exclude tags (optional)"
-                maxLength={MAX_INPUT_LENGTH}
-                className="flex-1 bg-gray-950/50 border border-gray-900 rounded-lg px-3.5 py-2.5 text-gray-200 placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500/50 text-sm"
-              />
-              <button
-                onClick={() => fetchWallpapers()}
-                disabled={loading}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-2.5 rounded-lg font-bold transition-all flex items-center gap-2 shadow-lg shadow-blue-500/30 text-sm cursor-pointer"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4.5 h-4.5 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-4.5 h-4.5" />
-                    Search
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {currentWallpaper && (
-            <div className="mt-2.5 flex items-center gap-2 text-xs text-gray-700">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-              Active: <span className="text-gray-600 font-medium">{currentWallpaper.split('/').pop()}</span>
-            </div>
-          )}
-        </div>
-      </div>
+      <ExpandedHeader
+        cacheInfo={cacheInfo}
+        selectedSource={selectedSource}
+        onSourceChange={setSelectedSource}
+        searchTags={searchTags}
+        onSearchTagsChange={setSearchTags}
+        excludeTags={excludeTags}
+        onExcludeTagsChange={setExcludeTags}
+        maxInputLength={MAX_INPUT_LENGTH}
+        loading={loading}
+        onSearch={() => fetchWallpapers()}
+        clearCache={clearCache}
+        currentWallpaper={currentWallpaper}
+        showExpandedHeader={showExpandedHeader}
+        videoWallpaperState={videoWallpaperState}
+        isTogglingLive={isTogglingLive}
+        onToggleLive={handleToggleLiveWallpaper}
+      />
 
       <div className="max-w-full mx-auto px-4 py-6 pt-14 relative z-10">
         {wallpapers.length === 0 && !loading && (
@@ -1219,8 +573,8 @@ export default function WallpaperEngine() {
             <div className="inline-block p-5 bg-gray-950/50 backdrop-blur-sm rounded-2xl mb-4 border border-gray-900">
               <Image className="w-16 h-16 text-gray-800" />
             </div>
-            <h2 className="text-xl font-bold text-gray-500 mb-2">Search for wallpapers</h2>
-            <p className="text-gray-700 text-sm">Try: anime, landscape, rain, nature</p>
+            <h2 className="text-xl font-bold text-gray-500 mb-2">Search for Wallpapers & Art</h2>
+            <p className="text-gray-700 text-sm">Try anything ex: anime, landscape, rain, ecchi</p>
           </div>
         )}
 
@@ -1263,3 +617,4 @@ export default function WallpaperEngine() {
     </div>
   );
 }
+

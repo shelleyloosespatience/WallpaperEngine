@@ -12,14 +12,29 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "ColorWall - Wallpaper Engine", 
-        "width": 1400, 
+        "width": 1600, 
         "height": 900,
         "resizable": true,
         "fullscreen": false,
-        "maximized": true,
+        "maximized": false,
         "decorations": false,
-        "transparent": true
+        "transparent": true,
+        "skipTaskbar": false
+      },
+      {
+        "label": "wallpaper",
+        "title": "ColorWall - Wallpaper",
+        "width": 1920,
+        "height": 1080,
+        "resizable": false,
+        "fullscreen": true,
+        "maximized": false,
+        "decorations": false,
+        "transparent": false,
+        "skipTaskbar": true,
+        "visible": false
       }
     ],
     "security": {
@@ -46,4 +61,3 @@
   }
 }
 }
-
