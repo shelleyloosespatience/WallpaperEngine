@@ -1,4 +1,4 @@
-## ColorWall - A Live Wallpaper APP in rust with autowallpapers
+## ColorWall - A Live Wallpaper APP in rust with AutoScraping & Free everything
 ## Build for fun, but yes it does exactly what it should
 ### - By Laxenta Inc @shelleyloosespatience
 [![Build](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml/badge.svg)](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml)
@@ -174,6 +174,7 @@ If you like this project, please consider:
 | **iOS** | ❌ No (uses system nav) | ❌ Very restricted | **Very High** - Apple walled garden |
 
 ---
+
 
 
 
