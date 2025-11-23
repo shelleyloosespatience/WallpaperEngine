@@ -84,6 +84,7 @@ export default function WallpaperEngine() {
   const lastScrollY = useRef(0);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(false);
 
   const loadCacheInfo = useCallback(async () => {
     try {
@@ -228,6 +229,13 @@ export default function WallpaperEngine() {
 
   const fetchWallpapers = useCallback(
     async (pageNum: number = 1, append: boolean = false) => {
+      if (isLoadingRef.current) {
+        console.log('[SCROLL] Already loading, skipping...');
+        return;
+      }
+
+      isLoadingRef.current = true;
+
       if (append) {
         setLoadingMore(true);
       } else {
@@ -236,6 +244,8 @@ export default function WallpaperEngine() {
         setPage(1);
         setHasMore(true);
       }
+
+      console.log(`[FETCH] Starting fetch - Page: ${pageNum}, Append: ${append}`);
 
       try {
         const includeTags = searchTags.split(' ').filter((t) => t.trim());
@@ -260,6 +270,8 @@ export default function WallpaperEngine() {
           const images = results
             .filter((r): r is PromiseFulfilledResult<PicReImage> => r.status === 'fulfilled' && r.value)
             .map((r) => r.value);
+
+          console.log(`[FETCH] PicRe items: ${images.length}`);
 
           if (images.length === 0) {
             if (!append) alert('No images found. Try different tags.');
@@ -292,19 +304,25 @@ export default function WallpaperEngine() {
           aiArt: false,
         });
 
+        console.log(`[FETCH] Response - Items: ${response?.items?.length || 0}`);
+
         if (!response?.items || response.items.length === 0) {
+          console.log('[FETCH] No items, stopping pagination');
           if (!append) alert('No wallpapers found. Try different filters.');
           setHasMore(false);
           return;
         }
 
         const normalized = (response.items as any[]).map(normalizeExternalItem).filter((item) => item.imageUrl);
+        console.log(`[FETCH] Normalized: ${normalized.length}`);
+
         let newWallpapers: WallpaperItem[] = [];
 
         if (append) {
           setWallpapers((prev) => {
             const existingIds = new Set(prev.map((w) => w.id));
             newWallpapers = normalized.filter((item) => !existingIds.has(item.id));
+            console.log(`[FETCH] New unique: ${newWallpapers.length}`);
             return [...prev, ...newWallpapers];
           });
         } else {
@@ -313,6 +331,7 @@ export default function WallpaperEngine() {
         }
 
         if (newWallpapers.length < DEFAULT_FETCH_COUNT / 2) {
+          console.log(`[FETCH] Got ${newWallpapers.length} items, stopping pagination`);
           setHasMore(false);
         }
       } catch (error) {
@@ -322,36 +341,79 @@ export default function WallpaperEngine() {
       } finally {
         setLoading(false);
         setLoadingMore(false);
+        isLoadingRef.current = false;
+        console.log('[FETCH] Completed');
       }
     },
     [excludeTags, searchTags, selectedSource]
   );
 
   const loadMoreWallpapers = useCallback(() => {
-    if (!hasMore || loadingMore) return;
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchWallpapers(nextPage, true);
-  }, [fetchWallpapers, hasMore, loadingMore, page]);
-
-  useEffect(() => {
-    if (!hasMore || loadingMore) return;
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          loadMoreWallpapers();
-        }
-      },
-      { rootMargin: '500px' }
-    );
-
-    if (sentinelRef.current) {
-      observerRef.current.observe(sentinelRef.current);
+    if (!hasMore || isLoadingRef.current) {
+      console.log(`[SCROLL] Skipping - hasMore: ${hasMore}, isLoading: ${isLoadingRef.current}`);
+      return;
     }
 
-    return () => observerRef.current?.disconnect();
-  }, [hasMore, loadingMore, loadMoreWallpapers]);
+    const nextPage = page + 1;
+    console.log(`[SCROLL] Loading page ${nextPage}`);
+    setPage(nextPage);
+    fetchWallpapers(nextPage, true);
+  }, [fetchWallpapers, hasMore, page]);
+
+  useEffect(() => {
+    // Cleanup previous observer
+    if (observerRef.current) {
+      console.log('[OBSERVER] Disconnecting previous observer');
+      observerRef.current.disconnect();
+    }
+
+    // Only create observer if we have wallpapers and there's more to load
+    if (wallpapers.length === 0) {
+      console.log('[OBSERVER] No wallpapers yet, skipping observer setup');
+      return;
+    }
+
+    // Create new observer
+    console.log('[OBSERVER] Creating new intersection observer');
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          console.log(`[OBSERVER] Entry - isIntersecting: ${entry.isIntersecting}, target: ${entry.target.className}`);
+          
+          if (entry.isIntersecting) {
+            console.log('[OBSERVER] Sentinel is intersecting!');
+            if (hasMore && !isLoadingRef.current) {
+              console.log('[OBSERVER] Conditions met - calling loadMoreWallpapers');
+              loadMoreWallpapers();
+            } else {
+              console.log(`[OBSERVER] Conditions NOT met - hasMore: ${hasMore}, isLoading: ${isLoadingRef.current}`);
+            }
+          }
+        });
+      },
+      {
+        rootMargin: '500px',
+        threshold: 0.01,
+      }
+    );
+
+    // Observe the trigger element
+    const currentSentinel = sentinelRef.current;
+    if (currentSentinel) {
+      console.log('[OBSERVER] Found sentinel element, observing it');
+      observerRef.current.observe(currentSentinel);
+    } else {
+      console.log('[OBSERVER] ERROR: Sentinel element not found!');
+    }
+
+    // Cleanup
+    return () => {
+      if (observerRef.current) {
+        console.log('[OBSERVER] Cleanup - disconnecting observer');
+        observerRef.current.disconnect();
+      }
+    };
+  }, [wallpapers.length, hasMore, loadMoreWallpapers]);
 
   const setAsWallpaper = useCallback(
     async (image: WallpaperItem, resolvedUrl?: string) => {
@@ -597,7 +659,15 @@ export default function WallpaperEngine() {
         </div>
 
         {wallpapers.length > 0 && hasMore && (
-          <div ref={sentinelRef} className="py-8 text-center">
+          <div 
+            ref={sentinelRef} 
+            className="py-8 text-center min-h-20 border-t border-gray-800"
+            style={{
+              background: 'rgba(30, 30, 30, 0.5)',
+            }}
+            onClick={() => console.log('[SENTINEL] Sentinel div clicked!')}
+          >
+            <p className="text-xs text-gray-600 mb-2">📍 Load more trigger zone</p>
             {loadingMore && (
               <div className="flex flex-col items-center gap-3 animate-fadeIn">
                 <Loader2 className="w-10 h-10 text-blue-500 animate-spin" strokeWidth={1.5} />

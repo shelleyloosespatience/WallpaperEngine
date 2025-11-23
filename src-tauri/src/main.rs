@@ -82,35 +82,69 @@ async fn search_wallpapers(
     let purity_val = purity.unwrap_or_else(|| "100".to_string());
     let ai_art_enabled = ai_art.unwrap_or(false);
 
+    println!("[BACKEND:SEARCH] Starting search - query: '{}', page: {}, limit: {}, sources: {}", query, page_num, limit, sources.join(","));
+
     let mut all_items = Vec::new();
     let mut errors = Vec::new();
 
     for source in sources {
+        println!("[BACKEND:SEARCH] Scraping source: {}", source);
+        
         let result = match source.as_str() {
             "wallhaven" => {
+                println!("[BACKEND:SCRAPE] wallhaven - page: {}", page_num);
                 scrape_wallhaven(&query, page_num, ai_art_enabled, &purity_val, limit).await
             }
-            "zerochan" => scrape_zerochan(&query, limit).await,
-            "moewalls" => scrape_moewalls(Some(&query), limit, false).await,
-            "wallpapers" => scrape_wallpapers_com(&query, limit).await,
-            "wallpaperflare" => scrape_wallpaperflare(&query, limit).await,
-            "motionbgs" => scrape_motionbgs(&query, limit, page_num).await,
+            "zerochan" => {
+                println!("[BACKEND:SCRAPE] zerochan - page: {}", page_num);
+                scrape_zerochan(&query, limit, page_num).await
+            }
+            "moewalls" => {
+                println!("[BACKEND:SCRAPE] moewalls - page: {}", page_num);
+                scrape_moewalls(Some(&query), limit, false, page_num).await
+            }
+            "wallpapers" => {
+                println!("[BACKEND:SCRAPE] wallpapers.com - page: {}", page_num);
+                scrape_wallpapers_com(&query, limit, page_num).await
+            }
+            "wallpaperflare" => {
+                println!("[BACKEND:SCRAPE] wallpaperflare - page: {}", page_num);
+                scrape_wallpaperflare(&query, limit, page_num).await
+            }
+            "motionbgs" => {
+                println!("[BACKEND:SCRAPE] motionbgs - page: {}", page_num);
+                scrape_motionbgs(&query, limit, page_num).await
+            }
             _ => continue,
         };
 
         match result {
-            Ok(items) => all_items.extend(items),
-            Err(e) => errors.push(format!("{}: {}", source, e)),
+            Ok(items) => {
+                let count = items.len();
+                println!("[BACKEND:SCRAPE] {}: Got {} items", source, count);
+                all_items.extend(items);
+            }
+            Err(e) => {
+                println!("[BACKEND:SCRAPE] {}: ERROR - {}", source, e);
+                errors.push(format!("{}: {}", source, e));
+            }
         }
     }
+
+    println!("[BACKEND:SEARCH] Total items before dedup: {}", all_items.len());
 
     let mut seen = HashSet::new();
     all_items.retain(|item| seen.insert(item.id.clone()));
 
+    println!("[BACKEND:SEARCH] Total items after dedup: {}", all_items.len());
+
     if should_randomize {
         let mut rng = rand::thread_rng();
         all_items.shuffle(&mut rng);
+        println!("[BACKEND:SEARCH] Shuffled results");
     }
+
+    println!("[BACKEND:SEARCH] Returning {} items with {} errors", all_items.len(), errors.len());
 
     Ok(SearchResponse {
         success: !all_items.is_empty(),
@@ -125,7 +159,7 @@ async fn search_wallpapers(
 
 #[tauri::command]
 async fn fetch_live2d(query: Option<String>) -> Result<SearchResponse, String> {
-    match scrape_moewalls(query.as_deref(), 50, true).await {
+    match scrape_moewalls(query.as_deref(), 50, true, 1).await {
         Ok(items) => Ok(SearchResponse {
             success: true,
             items,
