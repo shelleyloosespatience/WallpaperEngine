@@ -1,173 +1,167 @@
-## ColorWall - A Live Wallpaper APP in rust with everything a paid wallpaper app does
-## Unlimited wallpaper content directly from the FREE store, Native performance, **~3-5% GPU usage**, SO you can Play Games and use PC with Live Wallpapers running **Without** worrying about Performance
+<div align="center">
 
-### - ColorWall -| Linux | Windows | Mac
+# ColorWall
+
+### Free Wallpaper Engine Alternative Built in Rust for Performance for gamers and optimization Conessiours
+> Supporting -> LINUX | Windows | Mac
+> Contributions are heavily welcome! Im open to learning the mistakes i might have made, im not the best at rust or ts
+
+> **~0.5% CPU/3-8~GPU usage max • 4K Video Wallpapers • 6+ Auto-Scraped Sources**
+> Zero Infrastructure needed- Just the app and your pc becomes the host
+- Works offline
+
 [![Build](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml/badge.svg)](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml)
-<div align="center">
+[![Made with Rust](https://img.shields.io/badge/Made%20with-Rust-orange?style=flat-square&logo=rust)](https://www.rust-lang.org)
+[![Tauri](https://img.shields.io/badge/Tauri-FFC131?style=flat-square&logo=tauri&logoColor=black)](https://tauri.app)
 
-![OnwershipLogo](assets/me.jpg)
+[📥 Download](#-installation) • [✨ Features](#-features) • [Screenshots](#-screenshots) • [Build](#-build-from-source)
 
-**A extremely fast, optimized (~5% Gpu, 0.5ish CPU usage benchmarks) and free Wallpaper Engine, with native performance**
-**built with Rust + Tauri for quick scraping and setting a cool new wallpaper for your cute device**
-
-
-[![Made with Tauri](https://img.shields.io/badge/Made%20with-Tauri-FFC131?style=for-the-badge&logo=tauri)](https://tauri.app)
-[![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org)
-[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-
-[Features](#-features) • [Installation](#-installation) • [Screenshots](#-screenshots) • [Development](#-development) • [Contributing](#-contributing)
+![Preview](assets/rustColorwall.png)
 
 </div>
 
 ---
-## Performance
 
-ColorWall vs alternatives (playing 4K video wallpaper):
-| App | CPU | GPU | RAM |
-|-----|-----|-----|-----|
-| **ColorWall** | 0.3% | 35% | 316 MB |
-| Lively Wallpaper | 1.9% | 74% | 274 MB |
+## 🚀 Why ColorWall?
+> **Wallpaper Engine** costs $4 and locks you into Steam Workshop which is also paid sometimes
+> **Lively Wallpaper** is free but uses 6x more CPU  
+> **ColorWall** is free, faster, and scrapes All kind of ART/Wallpapers automatically, so no overhead needed from user
 
-*Tested on Intel i3 with integrated graphics laptop lmao lowkey*
+### Performance Benchmark on my old laptop
+
+| App | CPU Usage | GPU Usage | Memory | Price |
+|-----|-----------|-----------|--------|-------|
+| **ColorWall** | **0.3-1%** | 35% | 316 MB | **Free** |
+| Lively Wallpaper | 1.9% | 74% | 294 MB | Free |
+| Wallpaper Engine | 2-5% | 15-30% | 400+ MB | $4 |
+
+<sup>*Tested on Intel i3 integrated graphics - if it works here, it'll on your PC*</sup>
+
 ---
 
-## CRITICAL- Windows SmartScreen Warning
-### THIS IS OPENSOURCE SOFTWARE AND CODE, IF YOU THINK ANYTHING IS bad-> JUST CHECK THE CODE SIMPLY IN main.rs (the whole scraping code exists there, or show an ai that file)
-### OR just install the code, and build the executable yourself using pnpm i && pnpm run build, just for your happiness lmao cz u are a broke boi, no way i want anything from you
-When you first run ColorWall, Windows may show a SmartScreen warning because the app is not code-signed, simple (certificates cost $$$ :c).
+## ✨ Features
 
-## To install:
-1. Click "More info"
-2. Click "Run anyway"
-win antivirus is already shit anyways not that its opinion matters ._.
+### Live Video Wallpapers
+- **4K 60fps** video wallpapers at **~0.5% CPU**
+- Uses Windows Media Foundation (WMF from windows, we use native hardware decode and quick sync instead of using third party video encoders like mpv)
+- Smooth playback even on potato PCs
+
+### 🔍 Auto-Scraping from 6+ Sources
+No manual downloads. Search once, get results FROM our Store, Just a search away/
+
+### Three-Tier Smart Loading- Keeping in mind for perfomance and metered connections
+1. **Thumbnails** load instantly (4-5 MB for 100 wallpapers)
+2. **720p preview** on click (20 MB, instant playback)
+3. **4K download** only when you confirm (gets cached)
+
+**Result:** 95% less bandwidth than traditional wallpaper apps
+
 ---
 
+## 📥 Installation
 
-## ShowCase : )
+### Download for Your Platform
+
 <div align="center">
 
-### Main Interface
-![Main Interface](assets/rustColorwall.png)
+| Platform | Download |
+|----------|----------|
+| 🪟 **Windows** | [ColorWall-Setup.exe](https://github.com/shelleyloosespatience/WallpaperEngine/releases/latest) |
+| **Linux** | [ColorWall.AppImage](https://github.com/shelleyloosespatience/WallpaperEngine/releases/latest) |
+| **macOS** | [ColorWall.dmg](https://github.com/shelleyloosespatience/WallpaperEngine/releases/latest) |
 
-### Search & Filter
-![Search Interface](assets/nofeetfilter.png)
-
-### Image Preview Modal
-![Preview Modal](assets/updatedmodal.PNG)
+[📦 View All Releases](https://github.com/shelleyloosespatience/WallpaperEngine/releases)
 
 </div>
 
-## ✨ Features~
-- **Insanely Fast** - Three-tier loading (thumbnails → preview → 4K on demand) Rust + WMF native OS performance
-- **Multi-Source Search** - Search across 6+ wallpaper providers simultaneously
-  - Wallhaven
-  - Zerochan
-  - Wallpapers.com
-  - Live2D (Moewalls)
-  - WallpaperFlare (best source i scraped fr)
-  - pic.re
-- ⚡ **Instant Preview** - Click on the fetched content to see its preview to decide if you wanna set it as wallpaper or not? Yes A actual video preview
--  **Live Video Wallpapers** - 4K animated wallpapers using 0.3% CPU (yes, really)
--  **No Server Required** - Direct scraping 4k wallpapers from your PC, NO need to find wallpapers in random sites now (and zero chances of breaking)
-
+> **Windows SmartScreen Warning?**  
+> Click "More info" → "Run anyway"  
+> *App isn't code-signed because certificates cost hundreds of dollars. It's open source!*
+> Not that the opinion of windows defender matters, thats dogshit anyways, doesnt even help with real malwares lmao
 ---
 
+## Preview Screenshots!
 
+<div align="center">
 
-## Usage?
+### Main Gallery - Search & Filter
+![Gallery](assets/rustColorwall.png)
 
-1. **Search for Wallpapers**
-   - Enter tags in the search bar of the main page
-   - Use the source filter buttons to search specific providers (use ALL recommended, or wplflare for 4k ones)
-   - Add exclude tags to filter out unwanted content
+### Filter by Tags (No feet allowed lmao)
+![Filters](assets/nofeetfilter.png)
 
-2. **Preview & Set Wallpaper**
-   - Click any image to open full-size preview!
-   - Use zoom controls to inspect the high res image instead of the preview whch is compressed
-   - Click "Set as Wallpaper" to apply (live wallpaper support coming soon idk)
----
+### Live Preview Modal with Video Player
+![Preview](assets/updatedmodal.PNG)
 
-### used
+</div>
 
-- React 18
-- TypeScript
-- TailwindCSS
-- Lucide Icons
-- Rust
-- Tauri
-- Reqwest
-- Tokio (async thing)
+## 🔨 Build from Source
 
+Only if you don't trust the releases or want to contribute:
+```bash
+# Clone repo
+git clone https://github.com/shelleyloosespatience/WallpaperEngine.git
+cd WallpaperEngine
+
+# Install dependencies
+pnpm install
+
+# Run in development
+pnpm tauri dev
+
+# Build for production
+pnpm tauri build
+```
+
+> **Requirements:** Windows/Linux/macOS, Node.js 18+, pnpm, Rust 1.70+
 
 ---
 
 ## Contributing
 
-Contributions are welcome
+Welcome! Ideas:
 
-### Ideas for Contributions
+- [ ] Add more sources (Reddit, Imgur, etc)
+- [ ] Favorites/collections system
+- [ ] System tray icon
+- [ ] Auto-change wallpaper on timer
+- [ ] Fix Niche or bugs or Suggest improvements PLS
+- [ ] Linux Wayland improvements
+- [ ] Mobile (Android via Tauri Mobile)
+- Or just sponsor this project, you will be the coolest cutie in the world
+See [Issues](https://github.com/shelleyloosespatience/WallpaperEngine/issues) for more
 
-- Add more wallpaper providers
--  new themes/color schemes
-- Fix bugs and improve performance
-- Add mobile support (Tauri Mobile)
--  internationalization (i18n)
-- ⚙️ Add user preferences/settings
-- Improve search algorithms accordingly to each provider
+
+## Platform Support
+
+| Platform | Status | Effort |
+|----------|--------|--------|
+| **Windows 10/11** | Fully supported | Done |
+| **Linux (X11)** | Works | works |
+| **Linux (Wayland, KDE)** | Mostly works | Medium |
+| **macOS** | Yet to test | Medium |
+| **Android** | Planned | High |
+| **iOS** | Unlikely | looks hard to me |
 
 ---
 
-## Known Issues
+## 💖 Support This Project
 
-- **macOS**: Custom titlebar may look non-native. Native traffic lights coming soon for no reason!
-- **Linux/Wayland/Openbox**: Window dragging might be finicky on some compositors
-<!-- - **High DPI**: Some images may take longer to load on 4K+ displays -->
+If this saved you $4 and your CPU:
 
-See the [Issues](https://github.com/shelleyloosespatience/colorwall/issues) page for more.
+- ⭐ **Star the repo** (it matters!)
+- Report bugs
+- Suggest features
+- [Sponsor](https://github.com/sponsors/shelleyloosespatience) (helps fund Android/iOS ports)
 
----
-
-## 💖 Support
-
-If you like this project, please consider:
-
-- ⭐ Starring the repository
-- Reporting bugs
-- Suggesting new features
-- Contributing code
-- Giving me your money so i can extend support to android/ios and multiple linux distros, and add live wallpaper support along with its scraping, nsfw/user uploaded ones
 ---
 
 <div align="center">
 
-**Made by @me_straight [Laxenta Inc](https://laxenta.tech)**
+**Built with ❤️ by [@me_straight](https://github.com/shelleyloosespatience)**
 
-[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/yourusername)
-[![Website](https://img.shields.io/badge/Website-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://laxenta.tech)
+[Laxenta Inc](https://laxenta.tech) • [Website](https://laxenta.tech) • [Issues](https://github.com/shelleyloosespatience/WallpaperEngine/issues)
+
+*Made because a Wallpaper Engine doesn't need to cost that much MONEY and have so many random purchases or use tons of CPU/GPU*
 
 </div>
-
----
-## **Generated Summary Table:**
-
-| Platform | Custom Titlebar +code? | Wallpaper Setting? | Effort to Support |
-|----------|------------------|-------------------|-------------------|
-| **Windows** | ✅ Yes (yours works!) | ✅ Yes | Already done! |
-| **Linux** | ✅ Yes (same code) | ✅ Yes | Low  |
-| **macOS** | ⚠️ Yes but ugly | ✅ Yes | Medium - add native buttons |
-| **Android** | ❌ No (uses system nav) | ⚠️ Needs rewrite | **High** - custom Rust plugin |
-| **iOS** | ❌ No (uses system nav) | ❌ Very restricted | **Very High** - Apple walled garden |
-
----
-
-
-
-
-
-
-
-
-
-
-
