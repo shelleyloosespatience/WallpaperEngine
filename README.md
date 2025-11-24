@@ -1,6 +1,8 @@
 ## ColorWall - A Live Wallpaper APP in rust with AutoScraping & Free everything
 ## Build for fun, but yes it does exactly what it should
-### - By Laxenta Inc @shelleyloosespatience
+## Unlimited wallpaper content directly from the FREE store, Native performance, **~3-5% GPU usage**, SO you can Play Games and use PC with Live Wallpapers running **Without** worrying about Performance
+
+### - ColorWall -| Linux | Windows | Mac
 [![Build](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml/badge.svg)](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml)
 <div align="center">
 
@@ -20,10 +22,9 @@
 </div>
 
 ---
-## 📊 Performance
+## Performance
 
 ColorWall vs alternatives (playing 4K video wallpaper):
-
 | App | CPU | GPU | RAM |
 |-----|-----|-----|-----|
 | **ColorWall** | 0.3% | 35% | 316 MB |
@@ -37,7 +38,7 @@ ColorWall vs alternatives (playing 4K video wallpaper):
 ### OR just install the code, and build the executable yourself using pnpm i && pnpm run build, just for your happiness lmao cz u are a broke boi, no way i want anything from you
 When you first run ColorWall, Windows may show a SmartScreen warning because the app is not code-signed, simple (certificates cost $$$ :c).
 
-To install:
+## To install:
 1. Click "More info"
 2. Click "Run anyway"
 win antivirus is already shit anyways not that its opinion matters ._.
@@ -58,9 +59,8 @@ win antivirus is already shit anyways not that its opinion matters ._.
 
 </div>
 
-## ✨ Features
-
-- **Blazingly Fast** - 
+## ✨ Features~
+- **Insanely Fast** - Three-tier loading (thumbnails → preview → 4K on demand) Rust + WMF native OS performance
 - **Multi-Source Search** - Search across 6+ wallpaper providers simultaneously
   - Wallhaven
   - Zerochan
@@ -68,13 +68,9 @@ win antivirus is already shit anyways not that its opinion matters ._.
   - Live2D (Moewalls)
   - WallpaperFlare (best source i scraped fr)
   - pic.re
-- ⚡ **Instant Preview** - High-resolution image modal with zoom controls
-- **Smart Caching** - Intelligent image caching for offline access
-- **One-Click Set** - Set wallpapers instantly with a single click
-- ♾️ **Infinite Scroll** - Seamless loading of more wallpapers
-- 🎯 **Advanced Filtering** - Include/exclude tags for precise results
-- **Low Memory Usage** - Optimized image loading and unloading
-- **Live2D Support** - View and download animated Live2D wallpapers (not fully supported yet, will take some time, this is inital version)
+- ⚡ **Instant Preview** - Click on the fetched content to see its preview to decide if you wanna set it as wallpaper or not? Yes A actual video preview
+-  **Live Video Wallpapers** - 4K animated wallpapers using 0.3% CPU (yes, really)
+-  **No Server Required** - Direct scraping 4k wallpapers from your PC, NO need to find wallpapers in random sites now (and zero chances of breaking)
 
 ---
 
@@ -165,6 +161,7 @@ If you like this project, please consider:
 | **iOS** | ❌ No (uses system nav) | ❌ Very restricted | **Very High** - Apple walled garden |
 
 ---
+
 
 
 
