@@ -144,6 +144,7 @@ See [Issues](https://github.com/shelleyloosespatience/WallpaperEngine/issues) fo
 | **iOS** | Unlikely | looks hard to me |
 
 ---
+![OnwershipLogo](assets/me.jpg)
 
 ## 💖 Support This Project
 
@@ -165,3 +166,4 @@ If this saved you $4 and your CPU:
 *Made because a Wallpaper Engine doesn't need to cost that much MONEY and have so many random purchases or use tons of CPU/GPU*
 
 </div>
+
