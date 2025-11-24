@@ -6,7 +6,7 @@
 
 ![OnwershipLogo](assets/me.jpg)
 
-**A extremely fast, optimized (not on yr gpu lmao) and free Wallpaper Engine**
+**A extremely fast, optimized (~5% Gpu, 0.5ish CPU usage benchmarks) and free Wallpaper Engine, with native performance**
 **built with Rust + Tauri for quick scraping and setting a cool new wallpaper for your cute device**
 
 
@@ -19,6 +19,19 @@
 
 </div>
 
+---
+## 📊 Performance
+
+ColorWall vs alternatives (playing 4K video wallpaper):
+
+| App | CPU | GPU | RAM |
+|-----|-----|-----|-----|
+| **ColorWall** | 0.3% | 35% | 316 MB |
+| Lively Wallpaper | 1.9% | 74% | 274 MB |
+
+*Tested on Intel i3 with integrated graphics laptop lmao lowkey*
+---
+
 ## CRITICAL- Windows SmartScreen Warning
 ### THIS IS OPENSOURCE SOFTWARE AND CODE, IF YOU THINK ANYTHING IS bad-> JUST CHECK THE CODE SIMPLY IN main.rs (the whole scraping code exists there, or show an ai that file)
 ### OR just install the code, and build the executable yourself using pnpm i && pnpm run build, just for your happiness lmao cz u are a broke boi, no way i want anything from you
@@ -30,9 +43,24 @@ To install:
 win antivirus is already shit anyways not that its opinion matters ._.
 ---
 
+
+## ShowCase : )
+<div align="center">
+
+### Main Interface
+![Main Interface](assets/rustColorwall.png)
+
+### Search & Filter
+![Search Interface](assets/nofeetfilter.png)
+
+### Image Preview Modal
+![Preview Modal](assets/updatedmodal.PNG)
+
+</div>
+
 ## ✨ Features
 
-- **Blazingly Fast** - Built on Rust for maximum performance
+- **Blazingly Fast** - 
 - **Multi-Source Search** - Search across 6+ wallpaper providers simultaneously
   - Wallhaven
   - Zerochan
@@ -50,44 +78,7 @@ win antivirus is already shit anyways not that its opinion matters ._.
 
 ---
 
-## ShowCase : )
-<div align="center">
 
-### Main Interface
-![Main Interface](assets/rustColorwall.png)
-
-### Search & Filter
-![Search Interface](assets/nofeetfilter.png)
-
-### Image Preview Modal
-![Preview Modal](assets/updatedmodal.PNG)
-
-</div>
-
----
-## For developers Only
-## Installation
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [pnpm](https://pnpm.io/) (recommended) or npm
-- [Rust](https://www.rust-lang.org/tools/install) (latest stable)
-
-### Quick Start
-```bash
-# Clone the repository
-git clone https://github.com/shelleyloosespatience/WallpaperEngine.git
-cd colorwall
-# Install dependencies
-pnpm install
-# Run in development mode
-pnpm tauri dev
-# Build for production
-pnpm tauri build
-```
-
----
 
 ## Usage?
 
@@ -138,7 +129,7 @@ Contributions are welcome
 - **Linux/Wayland/Openbox**: Window dragging might be finicky on some compositors
 <!-- - **High DPI**: Some images may take longer to load on 4K+ displays -->
 
-See the [Issues](https://github.com/yourusername/colorwall/issues) page for more.
+See the [Issues](https://github.com/shelleyloosespatience/colorwall/issues) page for more.
 
 ---
 
@@ -174,6 +165,7 @@ If you like this project, please consider:
 | **iOS** | ❌ No (uses system nav) | ❌ Very restricted | **Very High** - Apple walled garden |
 
 ---
+
 
 
 
