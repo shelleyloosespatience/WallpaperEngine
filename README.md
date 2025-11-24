@@ -1,5 +1,4 @@
 ## ColorWall - A Live Wallpaper APP in rust with AutoScraping & Free everything
-## Build for fun, but yes it does exactly what it should
 ## Unlimited wallpaper content directly from the FREE store, Native performance, **~3-5% GPU usage**, SO you can Play Games and use PC with Live Wallpapers running **Without** worrying about Performance
 
 ### - ColorWall -| Linux | Windows | Mac
@@ -161,6 +160,7 @@ If you like this project, please consider:
 | **iOS** | ❌ No (uses system nav) | ❌ Very restricted | **Very High** - Apple walled garden |
 
 ---
+
 
 
 
