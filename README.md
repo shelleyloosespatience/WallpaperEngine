@@ -6,8 +6,10 @@
 > Supporting -> LINUX | Windows | Mac
 > Contributions are heavily welcome! Im open to learning the mistakes i might have made, im not the best at rust or ts
 
-> **~0.5% CPU/3-8~GPU usage max • 4K Video Wallpapers • 6+ Auto-Scraped Sources**
+> **~0.5% CPU / Around 3-8%GPU usage AX • 4K Video Wallpapers • 6+ Auto-Scraped Sources**
+
 > Zero Infrastructure needed- Just the app and your pc becomes the host
+
 - Works offline
 
 [![Build](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml/badge.svg)](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml)
@@ -58,9 +60,9 @@ No manual downloads. Search once, get results FROM our Store, Just a search away
 
 ---
 
-## 📥 Installation
+#  Installation ✨✨✨
 
-### Download for Your Platform
+### Download for Your Platform From Releases at the side!
 
 <div align="center">
 
@@ -129,7 +131,8 @@ Welcome! Ideas:
 - [ ] Linux Wayland improvements
 - [ ] Mobile (Android via Tauri Mobile)
 - Or just sponsor this project, you will be the coolest cutie in the world
-See [Issues](https://github.com/shelleyloosespatience/WallpaperEngine/issues) for more
+
+- See [Issues](https://github.com/shelleyloosespatience/WallpaperEngine/issues) for more!!
 
 
 ## Platform Support
@@ -166,4 +169,5 @@ If this saved you $4 and your CPU:
 *Made because a Wallpaper Engine doesn't need to cost that much MONEY and have so many random purchases or use tons of CPU/GPU*
 
 </div>
+
 
