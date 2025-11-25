@@ -44,6 +44,7 @@ const CustomTitleBar = () => {
     <div
       className="fixed top-0 left-0 right-0 h-8 bg-black/98 backdrop-blur-xl border-b border-gray-900/50 flex items-center justify-between px-3 z-[99999] select-none"
       data-tauri-drag-region
+      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       <div className="flex items-center gap-2 flex-1 h-full">
         <div className="w-5 h-5 relative pointer-events-none">
