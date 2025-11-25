@@ -1,8 +1,7 @@
 'use client';
-// debug logs in all needed places added for devs, so if someone wants to make changes to the code locally, they don't die adding logs
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
 import { Image, Loader2 } from 'lucide-react';
 
 import CustomTitleBar from './components/CustomTitleBar';
@@ -67,12 +66,16 @@ export default function WallpaperEngine() {
   const [wallpapers, setWallpapers] = useState<WallpaperItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [searchTags, setSearchTags] = useState('demon slayer');
+  const [searchTags, setSearchTags] = useState('anime');
   const [excludeTags, setExcludeTags] = useState('');
   const [cacheInfo, setCacheInfo] = useState({ sizeMB: '0', fileCount: 0 });
   const [currentWallpaper, setCurrentWallpaper] = useState('');
   const [settingWallpaper, setSettingWallpaper] = useState<string | null>(null);
-  const [videoWallpaperState, setVideoWallpaperState] = useState({ isActive: false, videoPath: null as string | null, videoUrl: null as string | null });
+  const [videoWallpaperState, setVideoWallpaperState] = useState({
+    isActive: false,
+    videoPath: null as string | null,
+    videoUrl: null as string | null
+  });
   const [isTogglingLive, setIsTogglingLive] = useState(false);
   const [selectedSource, setSelectedSource] = useState<WallpaperSourceOption>('all');
   const [selectedImage, setSelectedImage] = useState<WallpaperItem | null>(null);
@@ -127,38 +130,19 @@ export default function WallpaperEngine() {
     loadVideoWallpaperState();
   }, [loadCacheInfo, loadCurrentWallpaper, loadVideoWallpaperState]);
 
-  // Listen to video wallpaper state changes
-  useEffect(() => {
-    const unlisten = listen('video-wallpaper-changed', (event: any) => {
-      const state = event.payload as any;
-      setVideoWallpaperState({
-        isActive: state.isActive || false,
-        videoPath: state.videoPath || null,
-        videoUrl: state.videoUrl || null,
-      });
-    });
-
-    return () => {
-      unlisten.then(fn => fn());
-    };
-  }, []);
-
   const handleToggleLiveWallpaper = useCallback(async () => {
     if (isTogglingLive) return;
-    
+
     setIsTogglingLive(true);
     try {
-      const result: any = await invoke('toggle_video_wallpaper', { 
-        enable: !videoWallpaperState.isActive 
-      });
-      if (result?.success) {
-        await loadVideoWallpaperState();
-      } else {
-        alert('Failed: ' + (result?.error || 'Unknown error'));
+      if (videoWallpaperState.isActive) {
+        const result: any = await invoke('stop_video_wallpaper_command');
+        if (result?.success) {
+          await loadVideoWallpaperState();
+        }
       }
     } catch (error) {
       console.error('[ERROR] Toggle failed:', error);
-      alert('Error: ' + error);
     } finally {
       setIsTogglingLive(false);
     }
@@ -229,10 +213,7 @@ export default function WallpaperEngine() {
 
   const fetchWallpapers = useCallback(
     async (pageNum: number = 1, append: boolean = false) => {
-      if (isLoadingRef.current) {
-        console.log('[SCROLL] Already loading, skipping...');
-        return;
-      }
+      if (isLoadingRef.current) return;
 
       isLoadingRef.current = true;
 
@@ -244,8 +225,6 @@ export default function WallpaperEngine() {
         setPage(1);
         setHasMore(true);
       }
-
-      console.log(`[FETCH] Starting fetch - Page: ${pageNum}, Append: ${append}`);
 
       try {
         const includeTags = searchTags.split(' ').filter((t) => t.trim());
@@ -270,8 +249,6 @@ export default function WallpaperEngine() {
           const images = results
             .filter((r): r is PromiseFulfilledResult<PicReImage> => r.status === 'fulfilled' && r.value)
             .map((r) => r.value);
-
-          console.log(`[FETCH] PicRe items: ${images.length}`);
 
           if (images.length === 0) {
             if (!append) alert('No images found. Try different tags.');
@@ -304,17 +281,13 @@ export default function WallpaperEngine() {
           aiArt: false,
         });
 
-        console.log(`[FETCH] Response - Items: ${response?.items?.length || 0}`);
-
         if (!response?.items || response.items.length === 0) {
-          console.log('[FETCH] No items, stopping pagination');
           if (!append) alert('No wallpapers found. Try different filters.');
           setHasMore(false);
           return;
         }
 
         const normalized = (response.items as any[]).map(normalizeExternalItem).filter((item) => item.imageUrl);
-        console.log(`[FETCH] Normalized: ${normalized.length}`);
 
         let newWallpapers: WallpaperItem[] = [];
 
@@ -322,7 +295,6 @@ export default function WallpaperEngine() {
           setWallpapers((prev) => {
             const existingIds = new Set(prev.map((w) => w.id));
             newWallpapers = normalized.filter((item) => !existingIds.has(item.id));
-            console.log(`[FETCH] New unique: ${newWallpapers.length}`);
             return [...prev, ...newWallpapers];
           });
         } else {
@@ -331,7 +303,6 @@ export default function WallpaperEngine() {
         }
 
         if (newWallpapers.length < DEFAULT_FETCH_COUNT / 2) {
-          console.log(`[FETCH] Got ${newWallpapers.length} items, stopping pagination`);
           setHasMore(false);
         }
       } catch (error) {
@@ -342,74 +313,44 @@ export default function WallpaperEngine() {
         setLoading(false);
         setLoadingMore(false);
         isLoadingRef.current = false;
-        console.log('[FETCH] Completed');
       }
     },
     [excludeTags, searchTags, selectedSource]
   );
 
   const loadMoreWallpapers = useCallback(() => {
-    if (!hasMore || isLoadingRef.current) {
-      console.log(`[SCROLL] Skipping - hasMore: ${hasMore}, isLoading: ${isLoadingRef.current}`);
-      return;
-    }
+    if (!hasMore || isLoadingRef.current) return;
 
     const nextPage = page + 1;
-    console.log(`[SCROLL] Loading page ${nextPage}`);
     setPage(nextPage);
     fetchWallpapers(nextPage, true);
   }, [fetchWallpapers, hasMore, page]);
 
   useEffect(() => {
-    // Cleanup previous observer
     if (observerRef.current) {
-      console.log('[OBSERVER] Disconnecting previous observer');
       observerRef.current.disconnect();
     }
 
-    // Only create observer if we have wallpapers and there's more to load
-    if (wallpapers.length === 0) {
-      console.log('[OBSERVER] No wallpapers yet, skipping observer setup');
-      return;
-    }
+    if (wallpapers.length === 0) return;
 
-    // Create new observer
-    console.log('[OBSERVER] Creating new intersection observer');
     observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          console.log(`[OBSERVER] Entry - isIntersecting: ${entry.isIntersecting}, target: ${entry.target.className}`);
-          
-          if (entry.isIntersecting) {
-            console.log('[OBSERVER] Sentinel is intersecting!');
-            if (hasMore && !isLoadingRef.current) {
-              console.log('[OBSERVER] Conditions met - calling loadMoreWallpapers');
-              loadMoreWallpapers();
-            } else {
-              console.log(`[OBSERVER] Conditions NOT met - hasMore: ${hasMore}, isLoading: ${isLoadingRef.current}`);
-            }
+          if (entry.isIntersecting && hasMore && !isLoadingRef.current) {
+            loadMoreWallpapers();
           }
         });
       },
-      {
-        rootMargin: '500px',
-        threshold: 0.01,
-      }
+      { rootMargin: '500px', threshold: 0.01 }
     );
 
-    // Observe the trigger element
     const currentSentinel = sentinelRef.current;
     if (currentSentinel) {
-      console.log('[OBSERVER] Found sentinel element, observing it');
       observerRef.current.observe(currentSentinel);
-    } else {
-      console.log('[OBSERVER] ERROR: Sentinel element not found!');
     }
 
-    // Cleanup
     return () => {
       if (observerRef.current) {
-        console.log('[OBSERVER] Cleanup - disconnecting observer');
         observerRef.current.disconnect();
       }
     };
@@ -418,7 +359,31 @@ export default function WallpaperEngine() {
   const setAsWallpaper = useCallback(
     async (image: WallpaperItem, resolvedUrl?: string) => {
       if (image.type === 'video') {
-        window.open(image.imageUrl, '_blank');
+        setSettingWallpaper(image.id);
+        try {
+          let finalUrl = resolvedUrl || image.imageUrl;
+
+          if (!resolvedUrl && image.source === 'motionbgs' && image.detailUrl) {
+            const result: any = await invoke('resolve_motionbgs_video', { detailUrl: image.detailUrl });
+            if (result?.success && result?.url) {
+              finalUrl = result.url;
+            }
+          }
+
+          const result: any = await invoke('set_video_wallpaper', { videoUrl: finalUrl });
+          if (result.success) {
+            setSelectedImage(null);
+            await loadVideoWallpaperState();
+            await loadCacheInfo();
+          } else {
+            alert('Failed: ' + result.error);
+          }
+        } catch (error) {
+          console.error('[ERROR] Video wallpaper failed:', error);
+          alert('Error: ' + error);
+        } finally {
+          setSettingWallpaper(null);
+        }
         return;
       }
 
@@ -454,7 +419,7 @@ export default function WallpaperEngine() {
         setSettingWallpaper(null);
       }
     },
-    [loadCacheInfo]
+    [loadCacheInfo, loadVideoWallpaperState]
   );
 
   const clearCache = useCallback(async () => {
@@ -509,27 +474,6 @@ export default function WallpaperEngine() {
     >
       <CustomTitleBar />
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.4s ease-out forwards;
-        }
-        @keyframes soundwave {
-          0% {
-            transform: scale(1);
-            opacity: 0.6;
-          }
-          100% {
-            transform: scale(2.5);
-            opacity: 0;
-          }
-        }
-        .animate-soundwave {
-          animation: soundwave 2s ease-out infinite;
-        }
-
         * {
           scrollbar-width: thin;
           scrollbar-color: #3b82f6 #0a0a0a;
@@ -540,61 +484,32 @@ export default function WallpaperEngine() {
         }
         *::-webkit-scrollbar-track {
           background: #0a0a0a;
-          border-radius: 4px;
         }
         *::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg, #3b82f6, #6366f1);
+          background: #3b82f6;
           border-radius: 4px;
-          border: 1px solid #1e293b;
         }
-        *::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(180deg, #2563eb, #4f46e5);
+        
+        /* Make header draggable */
+        .sticky {
+          -webkit-app-region: drag;
         }
-
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-
+        
+        /* Keep interactive elements non-draggable */
         button, a, input, select, textarea {
           -webkit-app-region: no-drag;
         }
-        .sticky {
-          -webkit-app-region: no-drag;
-        }
-
+        
         * {
           -webkit-user-select: none;
-          -moz-user-select: none;
-          -ms-user-select: none;
           user-select: none;
         }
-
         input, textarea {
           -webkit-user-select: text;
-          -moz-user-select: text;
-          -ms-user-select: text;
           user-select: text;
         }
-
-        [data-tauri-drag-region] {
-          -webkit-app-region: drag;
-          app-region: drag;
-        }
-        button {
-          -webkit-app-region: no-drag !important;
-          app-region: no-drag !important;
-        }
-
         img {
-          pointer-events: auto;
           -webkit-user-drag: none;
-          -khtml-user-drag: none;
-          -moz-user-drag: none;
-          -o-user-drag: none;
           user-drag: none;
         }
       `}</style>
@@ -631,19 +546,19 @@ export default function WallpaperEngine() {
 
       <div className="max-w-full mx-auto px-4 py-6 pt-14 relative z-10">
         {wallpapers.length === 0 && !loading && (
-          <div className="text-center py-24 animate-fadeIn">
-            <div className="inline-block p-5 bg-gray-950/50 backdrop-blur-sm rounded-2xl mb-4 border border-gray-900">
+          <div className="text-center py-24">
+            <div className="inline-block p-5 bg-gray-950/30 rounded-2xl mb-4 border border-gray-900">
               <Image className="w-16 h-16 text-gray-800" />
             </div>
             <h2 className="text-xl font-bold text-gray-500 mb-2">Search for Wallpapers & Art</h2>
-            <p className="text-gray-700 text-sm">Try anything ex: anime, landscape, rain, ecchi</p>
+            <p className="text-gray-700 text-sm">Try: anime, landscape, rain, ecchi</p>
           </div>
         )}
 
         {loading && (
-          <div className="text-center py-24 animate-fadeIn">
+          <div className="text-center py-24">
             <Loader2 className="w-14 h-14 mx-auto text-blue-500 animate-spin mb-4" strokeWidth={1.5} />
-            <p className="text-lg font-semibold text-gray-600">mhmm...</p>
+            <p className="text-lg font-semibold text-gray-600">Loading...</p>
           </div>
         )}
 
@@ -659,17 +574,12 @@ export default function WallpaperEngine() {
         </div>
 
         {wallpapers.length > 0 && hasMore && (
-          <div 
-            ref={sentinelRef} 
-            className="py-8 text-center min-h-20 border-t border-gray-800"
-            style={{
-              background: 'rgba(30, 30, 30, 0.5)',
-            }}
-            onClick={() => console.log('[SENTINEL] Sentinel div clicked!')}
+          <div
+            ref={sentinelRef}
+            className="py-8 text-center min-h-20"
           >
-            <p className="text-xs text-gray-600 mb-2">📍 Load more trigger zone</p>
             {loadingMore && (
-              <div className="flex flex-col items-center gap-3 animate-fadeIn">
+              <div className="flex flex-col items-center gap-3">
                 <Loader2 className="w-10 h-10 text-blue-500 animate-spin" strokeWidth={1.5} />
                 <p className="text-sm font-medium text-gray-600">Loading more...</p>
               </div>
@@ -678,9 +588,9 @@ export default function WallpaperEngine() {
         )}
 
         {!hasMore && wallpapers.length > 0 && (
-          <div className="text-center py-12 animate-fadeIn">
-            <p className="text-gray-600 font-medium">This filter has No more wallpapers to load</p>
-            <p className="text-xs text-gray-700 mt-1">Contribute on github for more improvements and providers ;c</p>
+          <div className="text-center py-12">
+            <p className="text-gray-600 font-medium">No more wallpapers to load</p>
+            <p className="text-xs text-gray-700 mt-1">Try different filters uwu</p>
           </div>
         )}
       </div>
