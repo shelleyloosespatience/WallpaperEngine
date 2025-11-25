@@ -8,84 +8,95 @@ use windows::Win32::Media::MediaFoundation::*;
 use windows::Win32::System::Com::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 type WmfResult<T> = std::result::Result<T, String>;
-
 pub struct WmfPlayer {
-    // hwnd for native window :3
     hwnd: HWND,
-    // media engine core
     media_engine: Option<IMFMediaEngine>,
-    // d3d device for rendering
     _d3d_device: Option<ID3D11Device>,
-    // callback for events
     _callback: Option<IMFMediaEngineNotify>,
+    com_initialized: bool,
+    mf_initialized: bool,
 }
 
 unsafe impl Send for WmfPlayer {}
+unsafe impl Sync for WmfPlayer {}
 
 impl WmfPlayer {
     pub fn new(width: i32, height: i32) -> WmfResult<Self> {
         unsafe {
-            // com init, allow changed mode
-            let hr = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
-            if hr.is_err() && hr.0 != 0x00000001 {
-                return Err(format!("com init failed: {:?}", hr));
-            }
+            println!("initializing new player c:");
 
-            MFStartup(MF_VERSION, MFSTARTUP_FULL)
-                .map_err(|e| format!("mf startup failed: {}", e))?;
+            // COM initialization - be careful with thread state
+            let hr = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+            let com_initialized = if hr.is_ok() || hr.0 == 0x00000001 {
+                true
+            } else {
+                println!("[wmf] warning: COM already initialized or failed: {:?}", hr);
+                false
+            };
+
+            // MF initialization
+            let mf_result = MFStartup(MF_VERSION, MFSTARTUP_FULL);
+            let mf_initialized = if mf_result.is_ok() {
+                true
+            } else {
+                println!("[wmf] warning: MF startup failed: {:?}", mf_result);
+                false
+            };
 
             let hwnd = create_player_window(width, height)?;
             let d3d_device = create_d3d_device()?;
             let (media_engine, callback) = create_media_engine(hwnd, &d3d_device)?;
+
+            println!("[wmf] player created successfully");
 
             Ok(Self {
                 hwnd,
                 media_engine: Some(media_engine),
                 _d3d_device: Some(d3d_device),
                 _callback: Some(callback),
+                com_initialized,
+                mf_initialized,
             })
         }
     }
 
     pub fn load_video(&self, path: &str) -> WmfResult<()> {
-        // path normalization, url conversion
         println!("[wmf] load video");
         println!("[wmf] input path: {}", path);
-        
+
         unsafe {
-            let engine = self
-                .media_engine
-                .as_ref()
-                .ok_or_else(|| {
-                    println!("[wmf] error: engine not initialized");
-                    "engine not initialized".to_string()
-                })?;
-            
+            let engine = self.media_engine.as_ref().ok_or_else(|| {
+                println!("[wmf] error: engine not initialized");
+                "engine not initialized".to_string()
+            })?;
+
+            // windows like always is ass, and browsers dont get what windows path makes so we normalization
             let clean_path = path
                 .strip_prefix(r"\\?\")
                 .unwrap_or(path)
                 .replace('\\', "/");
-            
+
             let file_url = if clean_path.starts_with("file:") {
                 clean_path
             } else {
                 format!("file:///{}", clean_path)
             };
-            
+
             println!("[wmf] video url: {}", file_url);
-            
+
             let wide_url: Vec<u16> = file_url.encode_utf16().chain(Some(0)).collect();
-            let bstr = BSTR::from_wide(&wide_url[..wide_url.len()-1]);
-            
+            let bstr = BSTR::from_wide(&wide_url[..wide_url.len() - 1]);
+
             println!("[wmf] setting video source...");
             engine.SetSource(&bstr).map_err(|e| {
                 println!("[wmf] error: setsource failed: {}", e);
                 format!("setsource failed: {}", e)
             })?;
             println!("[wmf] source set ok");
-            
-            std::thread::sleep(std::time::Duration::from_millis(100));
-            
+
+            // js some time for source to be processed
+            std::thread::sleep(std::time::Duration::from_millis(150));
+
             println!("[wmf] configuring playback (loop, muted)...");
             engine.SetLoop(true).map_err(|e| {
                 println!("[wmf] error: setloop failed: {}", e);
@@ -96,67 +107,53 @@ impl WmfPlayer {
                 format!("setmuted failed: {}", e)
             })?;
             println!("[wmf] playback configured");
-            
+
             println!("[wmf] video loaded");
             Ok(())
         }
     }
 
     pub fn stop(&self) -> Result<(), String> {
-        // pause playback
         println!("[wmf] stop video");
         unsafe {
             let engine = self
                 .media_engine
                 .as_ref()
                 .ok_or_else(|| "engine not initialized".to_string())?;
-            
-            engine.Pause()
-                .map_err(|e| format!("failed to pause: {}", e))?;
+
+            // first pause
+            let _ = engine.Pause();
+
+            // set source to empty to clear the video
+            let empty_bstr = BSTR::new();
+            let _ = engine.SetSource(&empty_bstr);
+
+            // seek to beginning
+            let _ = engine.SetCurrentTime(0.0);
         }
-        println!("[wmf] video stopped");
+        println!("[wmf] video stopped and cleared");
         Ok(())
     }
 
     pub fn play(&self) -> WmfResult<()> {
-        // start playback, set window z-order
-        println!("[wmf] ========== play video ==========");
-        
+
         unsafe {
-            let engine = self
-                .media_engine
-                .as_ref()
-                .ok_or_else(|| {
-                    println!("[wmf] error: engine not initialized");
-                    "engine not initialized".to_string()
-                })?;
-            
-            // set playback rate to normal
+            let engine = self.media_engine.as_ref().ok_or_else(|| {
+                println!("[wmf] error: engine not initialized");
+                "engine not initialized".to_string()
+            })?;
+
             println!("[wmf] set playback rate 1.0...");
             let _ = engine.SetPlaybackRate(1.0);
-            
+
             println!("[wmf] starting playback...");
             engine.Play().map_err(|e| {
                 println!("[wmf] error: play failed: {}", e);
                 format!("play failed: {}", e)
             })?;
             println!("[wmf] playback started");
-            
-            // keep window in background
-            println!("[wmf] positioning window to background...");
-            use windows::Win32::UI::WindowsAndMessaging::{SetWindowPos, HWND_BOTTOM, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE};
-            let _ = SetWindowPos(
-                self.hwnd,
-                Some(HWND_BOTTOM),
-                0,
-                0,
-                0,
-                0,
-                SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE,
-            );
-            println!("[wmf] window positioned to background");
-            
-            println!("[wmf] ========== video playing ==========");
+
+            println!("works ok");
             Ok(())
         }
     }
@@ -164,34 +161,81 @@ impl WmfPlayer {
     pub fn hwnd(&self) -> HWND {
         self.hwnd
     }
+
+    pub fn reload_media_engine(&mut self) -> WmfResult<()> {
+        println!("[wmf] reloading media engine for video swap");
+
+        unsafe {
+            // Shutdown old engine
+            if let Some(engine) = self.media_engine.take() {
+                let _ = engine.Shutdown();
+            }
+
+            // Recreate media engine with same device
+            let d3d_device = self
+                ._d3d_device
+                .as_ref()
+                .ok_or_else(|| "d3d device not initialized".to_string())?;
+
+            let (new_engine, new_callback) = create_media_engine(self.hwnd, d3d_device)?;
+
+            self.media_engine = Some(new_engine);
+            self._callback = Some(new_callback);
+
+            println!("[wmf] media engine reloaded successfully");
+            Ok(())
+        }
+    }
+
+    pub fn shutdown(&mut self) {
+        println!("[wmf] shutting down player resources...");
+
+        unsafe {
+            // Shutdown media engine first
+            if let Some(engine) = self.media_engine.take() {
+                println!("[wmf] shutting down media engine");
+                let _ = engine.Pause();
+                let _ = engine.Shutdown();
+            }
+
+            // Destroy window
+            if !self.hwnd.0.is_null() {
+                println!("[wmf] destroying window {:?}", self.hwnd);
+                let _ = DestroyWindow(self.hwnd);
+                self.hwnd = HWND(std::ptr::null_mut());
+            }
+
+            // Clear other resources
+            self._d3d_device = None;
+            self._callback = None;
+
+            // MF shutdown
+            if self.mf_initialized {
+                let _ = MFShutdown();
+                self.mf_initialized = false;
+            }
+
+            // COM uninitialize
+            if self.com_initialized {
+                CoUninitialize();
+                self.com_initialized = false;
+            }
+        }
+
+        println!("[wmf] shutdown complete");
+    }
 }
 
 impl Drop for WmfPlayer {
     fn drop(&mut self) {
-        unsafe {
-            // shutdown engine, cleanup
-            if let Some(engine) = self.media_engine.take() {
-                let _ = engine.Shutdown();
-            }
-            
-            self._d3d_device = None;
-            self._callback = None;
-            
-            if !self.hwnd.0.is_null() {
-                let _ = DestroyWindow(self.hwnd);
-                self.hwnd = HWND(std::ptr::null_mut());
-            }
-            
-            let _ = MFShutdown();
-            CoUninitialize();
-        }
+        println!("[wmf] dropping player");
+        self.shutdown();
     }
 }
 
 unsafe fn create_player_window(width: i32, height: i32) -> WmfResult<HWND> {
-    // native window, transparent, non-interactive
     let class_name = w!("WmfPlayerWindow");
-    
+
     let wc = WNDCLASSW {
         lpfnWndProc: Some(wnd_proc),
         hInstance: HINSTANCE(std::ptr::null_mut()),
@@ -203,8 +247,11 @@ unsafe fn create_player_window(width: i32, height: i32) -> WmfResult<HWND> {
 
     let _ = RegisterClassW(&wc);
 
-    // ex style for transparency/toolwindow
-    let ex_style = WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOPARENTNOTIFY;
+    let ex_style = WS_EX_LAYERED
+        | WS_EX_TRANSPARENT
+        | WS_EX_TOOLWINDOW
+        | WS_EX_NOACTIVATE
+        | WS_EX_NOPARENTNOTIFY;
 
     let hwnd = CreateWindowExW(
         ex_style,
@@ -222,16 +269,12 @@ unsafe fn create_player_window(width: i32, height: i32) -> WmfResult<HWND> {
     )
     .map_err(|e| format!("createwindowexw failed: {}", e))?;
 
-    // set layered attributes for alpha
-    use windows::Win32::UI::WindowsAndMessaging::{SetLayeredWindowAttributes, LWA_ALPHA};
     use windows::Win32::Foundation::COLORREF;
+    use windows::Win32::UI::WindowsAndMessaging::{SetLayeredWindowAttributes, LWA_ALPHA};
     let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA);
-    
-    // show without activating
-    let _ = ShowWindow(hwnd, SW_SHOWNA);
-    
-    // keep in background
-    use windows::Win32::UI::WindowsAndMessaging::SetWindowPos;
+
+    // WE DONT SHOW WINDOW YET - IT WILL BE SHOWN AFTER INJECTION
+    // THIS PREVENTS IT FROM APPEARING IN TASKBAR BEFORE BEING INJECTED
     let _ = SetWindowPos(
         hwnd,
         Some(HWND_BOTTOM),
@@ -239,14 +282,18 @@ unsafe fn create_player_window(width: i32, height: i32) -> WmfResult<HWND> {
         0,
         0,
         0,
-        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
+        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW,
     );
 
     Ok(hwnd)
 }
 
-unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
-    // minimal message handling, no focus, no input
+unsafe extern "system" fn wnd_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
     match msg {
         WM_DESTROY => {
             PostQuitMessage(0);
@@ -254,10 +301,7 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
         }
         WM_MOUSEACTIVATE => LRESULT(MA_NOACTIVATE as isize),
         WM_NCHITTEST => LRESULT(HTTRANSPARENT as isize),
-        WM_SETCURSOR => {
-            // always transparent cursor
-            LRESULT(1)
-        },
+        WM_SETCURSOR => LRESULT(1),
         WM_ACTIVATE => LRESULT(0),
         WM_SETFOCUS => LRESULT(0),
         WM_PAINT => {
@@ -272,7 +316,6 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
 }
 
 unsafe fn create_d3d_device() -> WmfResult<ID3D11Device> {
-    // d3d11 device for video
     let mut device: Option<ID3D11Device> = None;
     let mut context: Option<ID3D11DeviceContext> = None;
 
@@ -296,18 +339,14 @@ unsafe fn create_media_engine(
     hwnd: HWND,
     device: &ID3D11Device,
 ) -> WmfResult<(IMFMediaEngine, IMFMediaEngineNotify)> {
-    // mf media engine setup, dxgi + callback
     let dxgi_manager = create_dxgi_manager(device)?;
     let callback = MediaEngineNotify::new();
     let callback_interface: IMFMediaEngineNotify = callback.into();
     let attributes = create_mf_attributes(hwnd, &dxgi_manager, &callback_interface)?;
-    
-    let factory: IMFMediaEngineClassFactory = CoCreateInstance(
-        &CLSID_MFMediaEngineClassFactory,
-        None,
-        CLSCTX_ALL,
-    )
-    .map_err(|e| format!("cocreateinstance failed: {}", e))?;
+
+    let factory: IMFMediaEngineClassFactory =
+        CoCreateInstance(&CLSID_MFMediaEngineClassFactory, None, CLSCTX_ALL)
+            .map_err(|e| format!("cocreateinstance failed: {}", e))?;
 
     let engine = factory
         .CreateInstance(0, &attributes)
@@ -317,7 +356,6 @@ unsafe fn create_media_engine(
 }
 
 unsafe fn create_dxgi_manager(device: &ID3D11Device) -> WmfResult<IMFDXGIDeviceManager> {
-    // dxgi device manager for mf
     let mut reset_token: u32 = 0;
     let mut manager: Option<IMFDXGIDeviceManager> = None;
     MFCreateDXGIDeviceManager(&mut reset_token, &mut manager)
@@ -333,11 +371,10 @@ unsafe fn create_dxgi_manager(device: &ID3D11Device) -> WmfResult<IMFDXGIDeviceM
 }
 
 unsafe fn create_mf_attributes(
-    hwnd: HWND, 
+    hwnd: HWND,
     dxgi_manager: &IMFDXGIDeviceManager,
     callback: &IMFMediaEngineNotify,
 ) -> WmfResult<IMFAttributes> {
-    // mf attributes for engine
     let mut attributes: Option<IMFAttributes> = None;
     MFCreateAttributes(&mut attributes, 5)
         .map_err(|e| format!("mfcreateattributes failed: {}", e))?;
@@ -349,7 +386,10 @@ unsafe fn create_mf_attributes(
         .map_err(|e| format!("setunknown dxgi failed: {}", e))?;
 
     attributes
-        .SetUINT64(&MF_MEDIA_ENGINE_VIDEO_OUTPUT_FORMAT, DXGI_FORMAT_B8G8R8A8_UNORM.0 as u64)
+        .SetUINT64(
+            &MF_MEDIA_ENGINE_VIDEO_OUTPUT_FORMAT,
+            DXGI_FORMAT_B8G8R8A8_UNORM.0 as u64,
+        )
         .map_err(|e| format!("setuint64 format failed: {}", e))?;
 
     attributes
@@ -364,7 +404,6 @@ unsafe fn create_mf_attributes(
         .SetUINT32(&MF_MEDIA_ENGINE_CONTENT_PROTECTION_FLAGS, 0)
         .map_err(|e| format!("setuint32 protection failed: {}", e))?;
 
-    // low-latency mode for gpu
     attributes
         .SetUINT32(&MF_MEDIA_ENGINE_AUDIO_CATEGORY, 0)
         .map_err(|e| format!("setuint32 audio category failed: {}", e))?;
@@ -382,7 +421,6 @@ impl MediaEngineNotify {
 }
 
 impl IMFMediaEngineNotify_Impl for MediaEngineNotify_Impl {
-    // event callback, error event = 7
     fn EventNotify(&self, event: u32, param1: usize, param2: u32) -> windows::core::Result<()> {
         if event == 7 {
             println!("[wmf] error event: code={} detail={}", param1, param2);
