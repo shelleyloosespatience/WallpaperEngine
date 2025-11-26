@@ -26,14 +26,14 @@
 
 ## 🚀 Why ColorWall?
 > **Wallpaper Engine** costs $4 and locks you into Steam Workshop which is also paid sometimes
-> **Lively Wallpaper** is free but uses 6x more CPU  
+> **Lively Wallpaper** is free but uses 6x more GPU  
 > **ColorWall** is free, faster, and scrapes All kind of ART/Wallpapers automatically, so no overhead needed from user
 
 ### Performance Benchmark on my old laptop
 
 | App | CPU Usage | GPU Usage | Memory | Price |
 |-----|-----------|-----------|--------|-------|
-| **ColorWall** | **0.3-1%** | 35% | 316 MB | **Free** |
+| **ColorWall** | **0.3-1%** | 7.5-14% | 316 MB | **Free** |
 | Lively Wallpaper | 1.9% | 74% | 294 MB | Free |
 | Wallpaper Engine | 2-5% | 15-30% | 400+ MB | $4 |
 
@@ -151,7 +151,7 @@ Welcome! Ideas:
 
 ## 💖 Support This Project
 
-If this saved you $4 and your CPU:
+If this saved you $4 and your GPU:
 
 - ⭐ **Star the repo** (it matters!)
 - Report bugs
@@ -169,5 +169,6 @@ If this saved you $4 and your CPU:
 *Made because a Wallpaper Engine doesn't need to cost that much MONEY and have so many random purchases or use tons of CPU/GPU*
 
 </div>
+
 
 
