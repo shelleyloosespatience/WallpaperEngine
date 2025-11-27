@@ -1,23 +1,15 @@
-export type WallpaperSourceOption =
-  | 'all'
-  | 'picre'
-  | 'wallhaven'
-  | 'zerochan'
-  | 'wallpapers'
-  | 'moewalls'
-  | 'wallpaperflare'
-  | 'motionbgs';
+export type WallpaperSourceOption = 'all' | 'wallhaven' | 'moewalls' | 'wallpapers' | 'wallpaperflare' | 'motionbgs';
 
 export interface PicReImage {
-  file_url: string;
+  _id: string;
   md5: string;
-  tags: string[];
+  file_url: string;
   width: number;
   height: number;
+  tags: string[];
   source: string;
   author: string;
   has_children: boolean;
-  _id: number;
 }
 
 export interface WallpaperItem {
@@ -26,12 +18,11 @@ export interface WallpaperItem {
   title?: string;
   imageUrl: string;
   thumbnailUrl?: string;
-  type?: 'image' | 'video';
+  type: 'image' | 'video';
   width?: number;
   height?: number;
   tags?: string[];
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, any>;
   detailUrl?: string;
   original?: any;
 }
-

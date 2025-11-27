@@ -53,15 +53,55 @@ pub struct ClearCacheResponse {
 pub struct ResolveHighResResponse {
     pub success: bool,
     pub url: Option<String>,
-    pub url4k: Option<String>, // 4K download URL for MotionBGs
+    pub url4k: Option<String>,
     pub error: Option<String>,
 }
 
-// ✅ Video wallpaper state
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoWallpaperState {
     pub is_active: bool,
     pub video_path: Option<String>,
     pub video_url: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UserWallpaper {
+    pub id: String,
+    pub name: String,
+    pub path: String,
+    pub media_type: String,
+    pub thumbnail: Option<String>,
+    pub added_at: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserWallpapersResponse {
+    pub success: bool,
+    pub wallpapers: Vec<UserWallpaper>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AppSettings {
+    pub audio_enabled: bool,
+    pub live_wallpaper_enabled: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsResponse {
+    pub success: bool,
+    pub settings: Option<AppSettings>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PathResponse {
+    pub success: bool,
+    pub path: Option<String>,
+    pub error: Option<String>,
 }

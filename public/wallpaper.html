@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wallpaper</title>
+  <style>
+    html, body { height: 100%; margin: 0; background: black; }
+    video { width: 100vw; height: 100vh; object-fit: cover; display: block; }
+  </style>
+</head>
+<body>
+  <video autoplay loop muted playsinline></video>
+  <script>
+    // If the video src is not set from Rust, the app can send it using window.eval from the backend.
+    // This file intentionally keeps logic minimal — the Rust side will set src and call play.
+  </script>
+</body>
+</html>

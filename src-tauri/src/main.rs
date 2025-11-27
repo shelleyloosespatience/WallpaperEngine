@@ -24,6 +24,18 @@ fn get_cache_dir() -> Result<PathBuf, String> {
     Ok(cache_dir)
 }
 
+fn get_user_wallpapers_dir() -> Result<PathBuf, String> {
+    let dir = std::env::temp_dir().join("user_wallpapers");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+fn get_settings_file() -> Result<PathBuf, String> {
+    let dir = std::env::temp_dir().join("wallpaper_app");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join("settings.json"))
+}
+
 async fn download_image(url: &str) -> Result<PathBuf, String> {
     let client = reqwest::Client::builder()
         .user_agent("WallpaperApp/1.0")
@@ -70,7 +82,6 @@ async fn search_wallpapers(
     let sources = sources.unwrap_or_else(|| {
         vec![
             "wallhaven".to_string(),
-            "zerochan".to_string(),
             "moewalls".to_string(),
             "wallpapers".to_string(),
             "wallpaperflare".to_string(),
@@ -101,10 +112,6 @@ async fn search_wallpapers(
             "wallhaven" => {
                 println!("[BACKEND:SCRAPE] wallhaven - page: {}", page_num);
                 scrape_wallhaven(&query, page_num, ai_art_enabled, &purity_val, limit).await
-            }
-            "zerochan" => {
-                println!("[BACKEND:SCRAPE] zerochan - page: {}", page_num);
-                scrape_zerochan(&query, limit, page_num).await
             }
             "moewalls" => {
                 println!("[BACKEND:SCRAPE] moewalls - page: {}", page_num);
@@ -331,8 +338,6 @@ async fn resolve_wallpaperflare_highres(
     }
 }
 
-// VIDEO WALLPAPER COMMANDS
-
 #[tauri::command]
 async fn resolve_motionbgs_video(detail_url: String) -> Result<ResolveHighResResponse, String> {
     println!("info: resolving MotionBGs video: {}", detail_url);
@@ -412,9 +417,188 @@ fn get_video_wallpaper_status() -> VideoWallpaperState {
     get_video_wallpaper_state()
 }
 
+// User Wallpaper Management Commands
+
+#[tauri::command]
+async fn list_user_wallpapers() -> Result<UserWallpapersResponse, String> {
+    let wallpapers_dir = get_user_wallpapers_dir()?;
+    let mut wallpapers = Vec::new();
+
+    if let Ok(entries) = std::fs::read_dir(&wallpapers_dir) {
+        for entry in entries.flatten() {
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_file() {
+                    let path = entry.path();
+                    let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+
+                    if matches!(extension, "mp4" | "mkv" | "jpg" | "jpeg" | "png" | "gif") {
+                        let name = path
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("Unknown")
+                            .to_string();
+
+                        let media_type = if matches!(extension, "mp4" | "mkv") {
+                            "video"
+                        } else {
+                            "image"
+                        };
+
+                        let added_at = metadata
+                            .created()
+                            .or_else(|_| metadata.modified())
+                            .ok()
+                            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                            .map(|d| d.as_secs() as i64)
+                            .unwrap_or(0);
+
+                        wallpapers.push(UserWallpaper {
+                            id: format!("{:x}", md5::compute(&name)),
+                            name,
+                            path: path.to_string_lossy().to_string(),
+                            media_type: media_type.to_string(),
+                            thumbnail: None,
+                            added_at,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    wallpapers.sort_by(|a, b| b.added_at.cmp(&a.added_at));
+
+    Ok(UserWallpapersResponse {
+        success: true,
+        wallpapers,
+    })
+}
+
+#[tauri::command]
+async fn upload_user_wallpaper(source_path: String) -> Result<WallpaperResponse, String> {
+    let source = std::path::Path::new(&source_path);
+
+    if !source.exists() {
+        return Ok(WallpaperResponse {
+            success: false,
+            message: None,
+            error: Some("Source file does not exist".to_string()),
+        });
+    }
+
+    let dest_dir = get_user_wallpapers_dir()?;
+    let file_name = source
+        .file_name()
+        .ok_or("Invalid file name")?
+        .to_string_lossy()
+        .to_string();
+
+    let dest_path = dest_dir.join(&file_name);
+
+    std::fs::copy(source, &dest_path).map_err(|e| format!("Failed to copy file: {}", e))?;
+
+    Ok(WallpaperResponse {
+        success: true,
+        message: Some(dest_path.to_string_lossy().to_string()),
+        error: None,
+    })
+}
+
+#[tauri::command]
+async fn delete_user_wallpaper(wallpaper_path: String) -> Result<WallpaperResponse, String> {
+    let path = std::path::Path::new(&wallpaper_path);
+
+    if !path.exists() {
+        return Ok(WallpaperResponse {
+            success: false,
+            message: None,
+            error: Some("File does not exist".to_string()),
+        });
+    }
+
+    std::fs::remove_file(path).map_err(|e| format!("Failed to delete file: {}", e))?;
+
+    Ok(WallpaperResponse {
+        success: true,
+        message: Some("File deleted successfully".to_string()),
+        error: None,
+    })
+}
+
+// Settings Management Commands
+
+#[tauri::command]
+async fn get_settings() -> Result<SettingsResponse, String> {
+    let settings_file = get_settings_file()?;
+
+    if !settings_file.exists() {
+        let default_settings = AppSettings {
+            audio_enabled: false,
+            live_wallpaper_enabled: true,
+        };
+        return Ok(SettingsResponse {
+            success: true,
+            settings: Some(default_settings),
+            error: None,
+        });
+    }
+
+    match std::fs::read_to_string(&settings_file) {
+        Ok(content) => match serde_json::from_str::<AppSettings>(&content) {
+            Ok(settings) => Ok(SettingsResponse {
+                success: true,
+                settings: Some(settings),
+                error: None,
+            }),
+            Err(e) => Ok(SettingsResponse {
+                success: false,
+                settings: None,
+                error: Some(format!("Failed to parse settings: {}", e)),
+            }),
+        },
+        Err(e) => Ok(SettingsResponse {
+            success: false,
+            settings: None,
+            error: Some(format!("Failed to read settings: {}", e)),
+        }),
+    }
+}
+
+#[tauri::command]
+async fn save_settings(settings: AppSettings) -> Result<SettingsResponse, String> {
+    let settings_file = get_settings_file()?;
+    let json = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+
+    std::fs::write(&settings_file, json).map_err(|e| format!("Failed to write settings: {}", e))?;
+
+    Ok(SettingsResponse {
+        success: true,
+        settings: Some(settings),
+        error: None,
+    })
+}
+
+#[tauri::command]
+async fn get_wallpaper_storage_path() -> Result<PathResponse, String> {
+    match get_user_wallpapers_dir() {
+        Ok(path) => Ok(PathResponse {
+            success: true,
+            path: Some(path.to_string_lossy().to_string()),
+            error: None,
+        }),
+        Err(e) => Ok(PathResponse {
+            success: false,
+            path: None,
+            error: Some(e),
+        }),
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             search_wallpapers,
             fetch_live2d,
@@ -427,6 +611,12 @@ fn main() {
             set_video_wallpaper,
             stop_video_wallpaper_command,
             get_video_wallpaper_status,
+            list_user_wallpapers,
+            upload_user_wallpaper,
+            delete_user_wallpaper,
+            get_settings,
+            save_settings,
+            get_wallpaper_storage_path,
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
@@ -439,10 +629,8 @@ fn main() {
                         "[main] Close button clicked - hiding window (wallpaper stays active)"
                     );
 
-                    // Prevent default close behavior
                     api.prevent_close();
 
-                    // Hide the window but DON'T stop wallpaper
                     if let Some(win) = app_handle.get_webview_window("main") {
                         let _ = win.hide();
                         println!("[main] Window hidden, wallpaper continues in background");
@@ -463,29 +651,24 @@ fn main() {
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
-                .on_menu_event(move |app, event| {
-                    match event.id.as_ref() {
-                        "show" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                                println!("[main] Window shown from tray");
-                            }
+                .on_menu_event(move |app, event| match event.id.as_ref() {
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            println!("[main] Window shown from tray");
                         }
-                        "quit" => {
-                            println!("[main] Quit requested from tray");
-
-                            // Stop video wallpaper before quitting
-                            let _ = stop_video_wallpaper(&app_handle_for_tray);
-
-                            // Give cleanup time to complete
-                            std::thread::sleep(std::time::Duration::from_millis(500));
-
-                            // Force exit
-                            app.exit(0);
-                        }
-                        _ => {}
                     }
+                    "quit" => {
+                        println!("[main] Quit requested from tray");
+
+                        let _ = stop_video_wallpaper(&app_handle_for_tray);
+
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+
+                        app.exit(0);
+                    }
+                    _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::Click {
@@ -506,7 +689,6 @@ fn main() {
             // Restore wallpaper on startup in background task
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                // Delay to allow app to fully initialize
                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
                 println!("[startup] attempting wallpaper restoration...");

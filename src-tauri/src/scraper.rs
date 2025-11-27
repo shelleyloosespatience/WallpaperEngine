@@ -1,6 +1,6 @@
 use crate::models::*;
-use scraper::{Html, Selector};
 use regex::Regex;
+use scraper::{Html, Selector};
 use std::collections::HashSet;
 
 // url normalization
@@ -21,7 +21,7 @@ pub fn pick_image_source(value: &str) -> String {
     if value.is_empty() {
         return String::new();
     }
-    
+
     let first_segment = value.split(',').next().unwrap_or("").trim();
     first_segment
         .trim_start_matches("url(\"")
@@ -36,16 +36,17 @@ pub fn pick_image_source(value: &str) -> String {
 // regex parse for WxH
 pub fn parse_resolution(text: &str) -> (Option<u32>, Option<u32>) {
     let re = Regex::new(r"(\d{3,5})\s*[x×]\s*(\d{3,5})").unwrap();
-    
+
     if let Some(caps) = re.captures(text) {
         let width = caps.get(1).and_then(|m| m.as_str().parse::<u32>().ok());
         let height = caps.get(2).and_then(|m| m.as_str().parse::<u32>().ok());
         return (width, height);
     }
-    
+
     (None, None)
 }
 
+// wallhaven main scraper - ✅ ALREADY HAS PAGINATION
 pub async fn scrape_wallhaven(
     query: &str,
     page: u32,
@@ -86,7 +87,10 @@ pub async fn scrape_wallhaven(
                     let is_png = element.select(&thumb_info_selector).next().is_some();
                     let ext = if is_png { ".png" } else { ".jpg" };
                     let short = &id[..2.min(id.len())];
-                    let image_url = format!("https://w.wallhaven.cc/full/{}/wallhaven-{}{}", short, id, ext);
+                    let image_url = format!(
+                        "https://w.wallhaven.cc/full/{}/wallhaven-{}{}",
+                        short, id, ext
+                    );
 
                     let thumbnail_url = element
                         .select(&img_selector)
@@ -125,108 +129,35 @@ pub async fn scrape_wallhaven(
     Ok(items)
 }
 
-pub async fn scrape_zerochan(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
+// picre and zerochan scrapers removed
+
+// wallpapers.com main scraper
+pub async fn scrape_wallpapers_com(
+    query: &str,
+    limit: usize,
+    page: u32,
+) -> Result<Vec<WallpaperItem>, String> {
+    println!(
+        "[SCRAPER:WALLPAPERS] Starting scrape - query: '{}', page: {}, limit: {}",
+        query, page, limit
+    );
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
 
-    // Zerochan uses ?p= for pagination
-    let url = format!("https://www.zerochan.net/{}?p={}", urlencoding::encode(query), page);
-
-    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
-    let html = response.text().await.map_err(|e| e.to_string())?;
-
-    let document = Html::parse_document(&html);
-    let item_selector = Selector::parse("#wrapper #content ul li").unwrap();
-    let link_selector = Selector::parse("p a").unwrap();
-    let img_selector = Selector::parse("img").unwrap();
-    let anchor_selector = Selector::parse("a").unwrap();
-
-    let mut items = Vec::new();
-
-    for (index, element) in document.select(&item_selector).enumerate() {
-        if items.len() >= limit {
-            break;
-        }
-        
-        let img = element.select(&img_selector).next();
-        if img.is_none() {
-            continue;
-        }
-        
-        let img_elem = img.unwrap();
-        
-        let thumb_src = img_elem
-            .value()
-            .attr("data-src")
-            .or_else(|| img_elem.value().attr("src"))
-            .or_else(|| img_elem.value().attr("data-original"))
-            .unwrap_or("");
-            
-        if thumb_src.is_empty() {
-            continue;
-        }
-        
-        let link = element.select(&link_selector).next()
-            .or_else(|| element.select(&anchor_selector).next());
-            
-        let image_link = if let Some(l) = link {
-            l.value().attr("href").unwrap_or("")
-        } else {
-            ""
-        };
-        
-        let title = img_elem.value().attr("alt").unwrap_or("Zerochan Wallpaper");
-        
-        let thumbnail_url = absolute_url(thumb_src, "https://www.zerochan.net");
-        let image_url = if !image_link.is_empty() {
-            absolute_url(image_link, "https://static.zerochan.net")
-        } else {
-            thumbnail_url.clone()
-        };
-        
-        let id = if !image_link.is_empty() {
-            image_link.split('/').last().unwrap_or(&index.to_string()).to_string()
-        } else {
-            format!("{}-{}", page, index)
-        };
-
-        items.push(WallpaperItem {
-            id: format!("zerochan-{}", id),
-            source: "zerochan".to_string(),
-            title: Some(title.to_string()),
-            image_url,
-            thumbnail_url: Some(thumbnail_url),
-            media_type: Some("image".to_string()),
-            width: None,
-            height: None,
-            tags: None,
-            detail_url: None,
-            original: None,
-        });
-    }
-
-    if items.is_empty() {
-        println!("[SCRAPER:ZEROCHAN] No items found");
-        return Err("zerochan returned no results".to_string());
-    }
-
-    println!("[SCRAPER:ZEROCHAN] Found {} items", items.len());
-    Ok(items)
-}
-
-pub async fn scrape_wallpapers_com(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
-    println!("[SCRAPER:WALLPAPERS] Starting scrape - query: '{}', page: {}, limit: {}", query, page, limit);
-    let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-        .build()
-        .map_err(|e| e.to_string())?;
-
+    // wallpapers.com uses ?p=2 ooops
     let url = if page > 1 {
-        format!("https://wallpapers.com/search/{}?p={}", urlencoding::encode(query), page)
+        format!(
+            "https://wallpapers.com/search/{}?p={}",
+            urlencoding::encode(query),
+            page
+        )
     } else {
-        format!("https://wallpapers.com/search/{}", urlencoding::encode(query))
+        format!(
+            "https://wallpapers.com/search/{}",
+            urlencoding::encode(query)
+        )
     };
 
     let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
@@ -241,7 +172,10 @@ pub async fn scrape_wallpapers_com(query: &str, limit: usize, page: u32) -> Resu
 
     for element in document.select(&item_selector).take(limit) {
         if let Some(figure) = element.select(&figure_selector).next() {
-            let title = figure.value().attr("data-title").unwrap_or("Wallpapers.com");
+            let title = figure
+                .value()
+                .attr("data-title")
+                .unwrap_or("Wallpapers.com");
             let key = figure.value().attr("data-key").unwrap_or("");
 
             if key.is_empty() {
@@ -289,15 +223,16 @@ pub async fn scrape_wallpapers_com(query: &str, limit: usize, page: u32) -> Resu
     Ok(items)
 }
 
+// wallpaperflare download resolver
 pub async fn resolve_wallpaperflare_download(
     detail_url: &str,
     client: &reqwest::Client,
 ) -> Result<(String, Option<u32>, Option<u32>), String> {
     let absolute = absolute_url(detail_url, "https://www.wallpaperflare.com");
     let download_page_url = format!("{}/download", absolute.trim_end_matches('/'));
-    
+
     println!("debug: resolving high-res from: {}", download_page_url);
-    
+
     if let Ok(response) = client
         .get(&download_page_url)
         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
@@ -343,9 +278,12 @@ pub async fn resolve_wallpaperflare_download(
             }
         }
     }
-    
-    println!("debug: download page failed, trying detail page: {}", absolute);
-    
+
+    println!(
+        "debug: download page failed, trying detail page: {}",
+        absolute
+    );
+
     match client.get(&absolute)
         .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
         .header("Referer", "https://www.wallpaperflare.com/")
@@ -402,10 +340,18 @@ pub async fn resolve_wallpaperflare_download(
     }
 }
 
-pub async fn scrape_wallpaperflare(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
-    println!("[SCRAPER:WALLPAPERFLARE] Starting scrape - query: '{}', page: {}, limit: {}", query, page, limit);
+// wallpaperflare main scraper 
+pub async fn scrape_wallpaperflare(
+    query: &str,
+    limit: usize,
+    page: u32,
+) -> Result<Vec<WallpaperItem>, String> {
+    println!(
+        "[SCRAPER:WALLPAPERFLARE] Starting scrape - query: '{}', page: {}, limit: {}",
+        query, page, limit
+    );
     let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x84) AppleWebKit/537.36")
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -431,7 +377,7 @@ pub async fn scrape_wallpaperflare(query: &str, limit: usize, page: u32) -> Resu
         .send()
         .await
         .map_err(|e| e.to_string())?;
-    
+
     let html = response.text().await.map_err(|e| e.to_string())?;
 
     #[derive(Clone)]
@@ -456,13 +402,14 @@ pub async fn scrape_wallpaperflare(query: &str, limit: usize, page: u32) -> Resu
             }
 
             let href = link_element.value().attr("href").unwrap_or("");
-            if href.is_empty() 
+            if href.is_empty()
                 || href.starts_with('#')
                 || href.starts_with("/search")
                 || href.starts_with("/tag")
                 || href.starts_with("/page")
                 || href == "/"
-                || !href.contains("wallpaper") {
+                || !href.contains("wallpaper")
+            {
                 continue;
             }
 
@@ -525,33 +472,42 @@ pub async fn scrape_wallpaperflare(query: &str, limit: usize, page: u32) -> Resu
         return Err("wallpaperflare returned no results".to_string());
     }
 
-    println!("[SCRAPER:WALLPAPERFLARE] Found {} temp items, converting...", temp_items.len());
-    let items: Vec<WallpaperItem> = temp_items.into_iter().map(|temp_item| WallpaperItem {
-        id: format!("wallpaperflare-{}", temp_item.id),
-        source: "wallpaperflare".to_string(),
-        title: Some(temp_item.title),
-        image_url: temp_item.thumbnail_url.clone(),
-        thumbnail_url: Some(temp_item.thumbnail_url),
-        media_type: Some("image".to_string()),
-        width: None,
-        height: None,
-        tags: None,
-        detail_url: Some(temp_item.detail_url),
-        original: None,
-    }).collect();
+    println!(
+        "[SCRAPER:WALLPAPERFLARE] Found {} temp items, converting...",
+        temp_items.len()
+    );
+    let items: Vec<WallpaperItem> = temp_items
+        .into_iter()
+        .map(|temp_item| WallpaperItem {
+            id: format!("wallpaperflare-{}", temp_item.id),
+            source: "wallpaperflare".to_string(),
+            title: Some(temp_item.title),
+            image_url: temp_item.thumbnail_url.clone(),
+            thumbnail_url: Some(temp_item.thumbnail_url),
+            media_type: Some("image".to_string()),
+            width: None,
+            height: None,
+            tags: None,
+            detail_url: Some(temp_item.detail_url),
+            original: None,
+        })
+        .collect();
 
     println!("[SCRAPER:WALLPAPERFLARE] Returning {} items", items.len());
     Ok(items)
 }
 
-// moewalls main scraper - ✅ ADDED PAGINATION SUPPORT
+// moewalls main scraper
 pub async fn scrape_moewalls(
     query: Option<&str>,
     limit: usize,
     include_videos: bool,
     page: u32,
 ) -> Result<Vec<WallpaperItem>, String> {
-    println!("[SCRAPER:MOEWALLS] Starting scrape - query: {:?}, page: {}, limit: {}", query, page, limit);
+    println!(
+        "[SCRAPER:MOEWALLS] Starting scrape - query: {:?}, page: {}, limit: {}",
+        query, page, limit
+    );
     let client = reqwest::Client::builder()
         .user_agent("WallpaperApp/1.0")
         .build()
@@ -560,7 +516,11 @@ pub async fn scrape_moewalls(
     // Moewalls uses /page/2/ for pagination
     let url = if let Some(q) = query {
         if page > 1 {
-            format!("https://moewalls.com/page/{}/?s={}", page, urlencoding::encode(q))
+            format!(
+                "https://moewalls.com/page/{}/?s={}",
+                page,
+                urlencoding::encode(q)
+            )
         } else {
             format!("https://moewalls.com/?s={}", urlencoding::encode(q))
         }
@@ -594,7 +554,7 @@ pub async fn scrape_moewalls(
             if let Some(img) = element.select(&img_selector).next() {
                 if let Some(thumbnail) = img.value().attr("src") {
                     let thumbnail_owned = thumbnail.to_string();
-                    
+
                     let video_url = if let Some(caps) = video_regex.captures(&thumbnail_owned) {
                         Some(format!(
                             "https://static.moewalls.com/videos/preview/{}/{}-preview.mp4",
@@ -604,9 +564,8 @@ pub async fn scrape_moewalls(
                         None
                     };
 
-                    let high_res_image = thumbnail_owned
-                        .replace("-thumb", "")
-                        .replace("-poster", "");
+                    let high_res_image =
+                        thumbnail_owned.replace("-thumb", "").replace("-poster", "");
 
                     let (media_type, image_url) = if include_videos && video_url.is_some() {
                         ("video", video_url.clone().unwrap())
@@ -664,9 +623,16 @@ fn motionbgs_tag_slug(query: &str) -> String {
         .join("-")
 }
 
-// motionbgs main scraper - ✅ ALREADY HAS PAGINATION
-pub async fn scrape_motionbgs(query: &str, limit: usize, page: u32) -> Result<Vec<WallpaperItem>, String> {
-    println!("[SCRAPER:MOTIONBGS] Starting scrape - query: '{}', page: {}, limit: {}", query, page, limit);
+// motionbgs main scraper
+pub async fn scrape_motionbgs(
+    query: &str,
+    limit: usize,
+    page: u32,
+) -> Result<Vec<WallpaperItem>, String> {
+    println!(
+        "[SCRAPER:MOTIONBGS] Starting scrape - query: '{}', page: {}, limit: {}",
+        query, page, limit
+    );
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()
@@ -689,7 +655,7 @@ pub async fn scrape_motionbgs(query: &str, limit: usize, page: u32) -> Result<Ve
     };
 
     println!("info: fetching motionbgs: {}", url);
-    
+
     let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
     let html = response.text().await.map_err(|e| e.to_string())?;
 
@@ -703,7 +669,7 @@ pub async fn scrape_motionbgs(query: &str, limit: usize, page: u32) -> Result<Ve
 
     for element in document.select(&tmb_selector) {
         let detail_url = element.value().attr("href").unwrap_or("");
-        
+
         if detail_url.is_empty() || detail_url.starts_with("http") {
             continue;
         }
@@ -715,7 +681,7 @@ pub async fn scrape_motionbgs(query: &str, limit: usize, page: u32) -> Result<Ve
 
         let img_elem = img.unwrap();
         let thumbnail = img_elem.value().attr("src").unwrap_or("");
-        
+
         if thumbnail.is_empty() {
             continue;
         }
@@ -785,11 +751,15 @@ pub async fn scrape_motionbgs_detail(detail_url: &str) -> Result<(String, Option
 
     println!("info: fetching motionbgs detail: {}", detail_url);
 
-    let response = client.get(detail_url).send().await.map_err(|e| e.to_string())?;
+    let response = client
+        .get(detail_url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
     let html = response.text().await.map_err(|e| e.to_string())?;
 
     let document = Html::parse_document(&html);
-    
+
     // Extract preview video from <video><source src="..."> tag
     let video_selector = Selector::parse("video source[src]").unwrap();
     let preview_url = document
@@ -801,7 +771,7 @@ pub async fn scrape_motionbgs_detail(detail_url: &str) -> Result<(String, Option
 
     println!("[info] found preview video url: {}", preview_url);
 
-    // Extract 4K download link
+    // 4K download link
     let download_selector = Selector::parse("div.download a[href*='/dl/4k/']").unwrap();
     let download_4k_url = document
         .select(&download_selector)
@@ -817,3 +787,5 @@ pub async fn scrape_motionbgs_detail(detail_url: &str) -> Result<(String, Option
 
     Ok((preview_url, download_4k_url))
 }
+
+

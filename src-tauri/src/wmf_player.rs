@@ -16,16 +16,14 @@ pub struct WmfPlayer {
     com_initialized: bool,
     mf_initialized: bool,
 }
-
 unsafe impl Send for WmfPlayer {}
 unsafe impl Sync for WmfPlayer {}
-
 impl WmfPlayer {
     pub fn new(width: i32, height: i32) -> WmfResult<Self> {
         unsafe {
             println!("initializing new player c:");
 
-            // COM initialization - be careful with thread state
+            // COM init (careful with thread state, its painful if it fails silently)
             let hr = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
             let com_initialized = if hr.is_ok() || hr.0 == 0x00000001 {
                 true
@@ -112,7 +110,7 @@ impl WmfPlayer {
             Ok(())
         }
     }
-
+   // unused
     pub fn stop(&self) -> Result<(), String> {
         println!("[wmf] stop video");
         unsafe {
@@ -128,7 +126,7 @@ impl WmfPlayer {
             let empty_bstr = BSTR::new();
             let _ = engine.SetSource(&empty_bstr);
 
-            // seek to beginning
+            // seek to beginning ;p
             let _ = engine.SetCurrentTime(0.0);
         }
         println!("[wmf] video stopped and cleared");

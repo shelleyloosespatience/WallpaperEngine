@@ -13,8 +13,8 @@
     "windows": [
       {
         "label": "main",
-        "title": "ColorWall - Wallpaper Engine", 
-        "width": 1600, 
+        "title": "ColorWall - Wallpaper Engine @2025 Laxenta Inc", 
+        "width": 1000, 
         "height": 900,
         "resizable": true,
         "fullscreen": false,
@@ -25,9 +25,9 @@
       },
       {
         "label": "wallpaper",
-        "title": "ColorWall - Wallpaper",
-        "width": 1920,
-        "height": 1080,
+        "title": "ColorWall - Wallpaper Engine @2025 Laxenta Inc",
+        "width": 1000,
+        "height": 900,
         "resizable": false,
         "fullscreen": true,
         "maximized": false,
