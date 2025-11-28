@@ -217,7 +217,7 @@ fn create_windows_wmf_wallpaper(video_path: &str) -> Result<(), String> {
         return Ok(());
     }
 
-    // No existing player - create new one (first time only)
+    // create new one (first time only)
     drop(player_lock);
 
     println!("[video_wallpaper] Creating new WMF player (first time)...");
@@ -237,13 +237,13 @@ fn create_windows_wmf_wallpaper(video_path: &str) -> Result<(), String> {
     println!("[video_wallpaper] Loading video: {}", video_path_str);
     player.load_video(&video_path_str)?;
 
-    // Wait for video to load properly
+    // idk imp to wait on slow matchines
     thread::sleep(Duration::from_millis(500));
 
     let hwnd = player.hwnd();
     println!("[video_wallpaper] Player window created: {:?}", hwnd);
 
-    // Reduce thread priority
+    // red thread priority
     #[cfg(target_os = "windows")]
     {
         use windows::Win32::System::Threading::{
@@ -264,13 +264,13 @@ fn create_windows_wmf_wallpaper(video_path: &str) -> Result<(), String> {
         desktop_height,
     )?;
 
-    // Wait for injection to complete
+    // waity waity for slow devices
     thread::sleep(Duration::from_millis(400));
 
     println!("[video_wallpaper] Starting playback...");
     player.play()?;
 
-    // Store the player instance
+    // store the player instance
     *WMF_PLAYER_INSTANCE.lock().unwrap() = Some(player);
 
     println!("[video_wallpaper] Wallpaper set successfully");
@@ -280,12 +280,9 @@ fn create_windows_wmf_wallpaper(video_path: &str) -> Result<(), String> {
 #[cfg(target_os = "windows")]
 fn stop_windows_wmf_wallpaper() -> Result<(), String> {
     println!("[video_wallpaper] Stopping Windows WMF wallpaper...");
-
-    // Stop watchdog first
     desktop_injection::stop_watchdog();
     thread::sleep(Duration::from_millis(200));
-
-    // Get and destroy player
+  // kil (0)
     let mut player_lock = WMF_PLAYER_INSTANCE.lock().unwrap();
     if let Some(mut player) = player_lock.take() {
         println!("[video_wallpaper] Shutting down player...");
@@ -297,7 +294,7 @@ fn stop_windows_wmf_wallpaper() -> Result<(), String> {
     }
     drop(player_lock);
 
-    // aaaaa extra cleanup time
+    // for slow  devices xtra cleanup time
     thread::sleep(Duration::from_millis(300));
 
     println!("[video_wallpaper] Cleanup complete");
@@ -422,7 +419,7 @@ pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
                 if std::path::Path::new(video_path).exists() {
                     println!("[startup] Found saved wallpaper, restoring: {}", video_path);
 
-                    // Give the app time to fully initialize
+                    // for slow devices and proprt init 
                     std::thread::sleep(std::time::Duration::from_millis(800));
 
                     match create_video_wallpaper_window(app, video_path) {
@@ -431,8 +428,7 @@ pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
                             Ok(())
                         }
                         Err(e) => {
-                            println!("[startup] Failed to restore wallpaper: {}", e);
-                            // Clear invalid state
+                            println!("[startup] oops failed to restore wallpaper: {}", e);
                             let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
                             state.is_active = false;
                             state.video_path = None;
@@ -442,8 +438,7 @@ pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
                         }
                     }
                 } else {
-                    println!("[startup] Saved video file not found: {}", video_path);
-                    // Clear invalid state
+                    println!("[startup] oops video file not found: {}", video_path);
                     let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
                     state.is_active = false;
                     state.video_path = None;
@@ -464,3 +459,4 @@ pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
         Ok(())
     }
 }
+// eof ;3 kys

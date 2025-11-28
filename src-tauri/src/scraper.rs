@@ -2,7 +2,6 @@ use crate::models::*;
 use regex::Regex;
 use scraper::{Html, Selector};
 use std::collections::HashSet;
-
 // url normalization
 pub fn absolute_url(href: &str, base: &str) -> String {
     if href.starts_with("http://") || href.starts_with("https://") {
@@ -46,7 +45,7 @@ pub fn parse_resolution(text: &str) -> (Option<u32>, Option<u32>) {
     (None, None)
 }
 
-// wallhaven main scraper - ✅ ALREADY HAS PAGINATION
+// wallhaven main scraper
 pub async fn scrape_wallhaven(
     query: &str,
     page: u32,
@@ -56,7 +55,7 @@ pub async fn scrape_wallhaven(
 ) -> Result<Vec<WallpaperItem>, String> {
     println!("[SCRAPER:WALLHAVEN] Starting scrape - query: '{}', page: {}, limit: {}, purity: {}, ai_art: {}", query, page, limit, purity, ai_art);
     let client = reqwest::Client::builder()
-        .user_agent("WallpaperApp/1.0")
+        .user_agent("LaxentaInc/1.0")
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -142,6 +141,7 @@ pub async fn scrape_wallpapers_com(
         query, page, limit
     );
     let client = reqwest::Client::builder()
+    // again doesnt rlly matter x64 or x84 lol
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
@@ -340,7 +340,7 @@ pub async fn resolve_wallpaperflare_download(
     }
 }
 
-// wallpaperflare main scraper 
+// wallpaperflare main scraper (best one i scraped yet ngl, got good wallpapers)
 pub async fn scrape_wallpaperflare(
     query: &str,
     limit: usize,
@@ -355,7 +355,7 @@ pub async fn scrape_wallpaperflare(
         .build()
         .map_err(|e| e.to_string())?;
 
-    // WallpaperFlare uses &page=2 for pagination
+    // wf uh uses &page=2 for pagination
     let url = if page > 1 {
         format!(
             "https://www.wallpaperflare.com/search?wallpaper={}&page={}",
@@ -513,7 +513,7 @@ pub async fn scrape_moewalls(
         .build()
         .map_err(|e| e.to_string())?;
 
-    // Moewalls uses /page/2/ for pagination
+    // meowwalls uses /page/2/ for pagination
     let url = if let Some(q) = query {
         if page > 1 {
             format!(
@@ -770,9 +770,7 @@ pub async fn scrape_motionbgs_detail(detail_url: &str) -> Result<(String, Option
         .ok_or_else(|| "preview video url not found in video tag".to_string())?;
 
     println!("[info] found preview video url: {}", preview_url);
-
-    // 4K download link
-    let download_selector = Selector::parse("div.download a[href*='/dl/4k/']").unwrap();
+    let download_selector = Selector::parse("div.download a[href*='/dl/4k/']").unwrap(); // done OK got the link
     let download_4k_url = document
         .select(&download_selector)
         .next()
@@ -782,10 +780,8 @@ pub async fn scrape_motionbgs_detail(detail_url: &str) -> Result<(String, Option
     if let Some(ref url) = download_4k_url {
         println!("[success] found 4k download url: {}", url);
     } else {
-        println!("[warn] 4k download link not found, using preview url");
+        println!("[warn: Critical] Sadly 4k download link not found, using preview url");
     }
 
     Ok((preview_url, download_4k_url))
 }
-
-

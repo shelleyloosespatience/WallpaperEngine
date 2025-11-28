@@ -1,5 +1,6 @@
 import React from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { motion } from 'framer-motion';
 import { Upload } from 'lucide-react';
@@ -35,7 +36,7 @@ export default function LibraryPage() {
                 setWallpapers(result.wallpapers || []);
             }
         } catch (error) {
-            console.error('Failed to load wallpapers:', error);
+            console.error(error);
         }
     }, []);
 
@@ -54,7 +55,7 @@ export default function LibraryPage() {
                 setVideoState(videoSt);
             }
         } catch (error) {
-            console.error('Failed to load current state:', error);
+            console.error(error);
         }
     }, []);
 
@@ -87,12 +88,11 @@ export default function LibraryPage() {
                 if (result.success) {
                     await loadWallpapers();
                 } else {
-                    alert('Failed to upload: ' + result.error);
+                    alert(result.error);
                 }
             }
         } catch (error) {
-            console.error('Upload failed:', error);
-            alert('Upload failed: ' + error);
+            console.error(error);
         } finally {
             setUploading(false);
         }
@@ -122,8 +122,7 @@ export default function LibraryPage() {
                 }
             }
         } catch (error) {
-            console.error('Set wallpaper failed:', error);
-            alert('Error: ' + error);
+            console.error(error);
         }
     };
 
@@ -138,11 +137,10 @@ export default function LibraryPage() {
             if (result.success) {
                 await loadWallpapers();
             } else {
-                alert('Failed to delete: ' + result.error);
+                alert(result.error);
             }
         } catch (error) {
-            console.error('Delete failed:', error);
-            alert('Error: ' + error);
+            console.error(error);
         }
     };
 
@@ -171,7 +169,7 @@ export default function LibraryPage() {
                 style={{ marginBottom: '36px' }}
             >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-0.02em' }}>
+                    <h1 style={{ fontSize: '36px', fontWeight: 800, color: 'aqua', letterSpacing: '-0.02em' }}>
                         My Collection
                     </h1>
                     <motion.button
@@ -207,7 +205,7 @@ export default function LibraryPage() {
                                         animation: 'spin 0.8s linear infinite',
                                     }}
                                 />
-                                Uploading...
+                                yaweee! one second...
                             </>
                         ) : (
                             <>
@@ -217,6 +215,10 @@ export default function LibraryPage() {
                         )}
                     </motion.button>
                 </div>
+                            <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'red', marginBottom: '12px', padding: '2px' }}>
+                This page is under development, so live wallpapers dont work yet :3
+            </h2>
+
             </motion.div>
 
             {wallpapers.length === 0 ? (
@@ -232,9 +234,9 @@ export default function LibraryPage() {
                     }}
                 >
                     <div style={{ fontSize: '80px', marginBottom: '20px', opacity: 0.2 }}>📁</div>
-                    <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '12px' }}>Your collection is empty</h2>
+                    <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '12px' }}>Your collection is empty bruh</h2>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '16px', marginBottom: '28px' }}>
-                        Upload your favorite wallpapers to get started
+                        Upload your favorite wallpapers to get started :3
                     </p>
                     <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -261,18 +263,22 @@ export default function LibraryPage() {
                         columnGap: '24px',
                     }}
                 >
-                    {wallpapers.map((wallpaper) => (
-                        <WallpaperCard
-                            key={wallpaper.id}
-                            id={wallpaper.id}
-                            thumbnail={wallpaper.thumbnail}
-                            type={wallpaper.media_type === 'video' ? 'video' : 'image'}
-                            isActive={isActive(wallpaper)}
-                            onSet={() => handleSetWallpaper(wallpaper)}
-                            onDelete={() => handleDelete(wallpaper)}
-                            isVisible={true}
-                        />
-                    ))}
+                    {wallpapers.map((wallpaper) => {
+                        const assetUrl = convertFileSrc(wallpaper.path);
+
+                        return (
+                            <WallpaperCard
+                                key={wallpaper.id}
+                                id={wallpaper.id}
+                                thumbnail={wallpaper.thumbnail || assetUrl}
+                                type={wallpaper.media_type === 'video' ? 'video' : 'image'}
+                                isActive={isActive(wallpaper)}
+                                onSet={() => handleSetWallpaper(wallpaper)}
+                                onDelete={() => handleDelete(wallpaper)}
+                                isVisible={true}
+                            />
+                        );
+                    })}
                 </div>
             )}
         </div>

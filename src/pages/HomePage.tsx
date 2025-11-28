@@ -4,6 +4,8 @@ import { Upload, Sparkles, Zap } from 'lucide-react';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import StoreCard from '../components/StoreCard';
+import girlImage from '../assets/girlieeeee.jpg';
+import showcaseVideo from '../assets/battlefield-sekiro-shadows-die-twice-moewalls-com.mp4';
 
 interface HomePageProps {
     onNavigateToSource: (source: string) => void;
@@ -32,14 +34,14 @@ export default function HomePage({ onNavigateToSource, onNavigateToLive }: HomeP
                 });
 
                 if (result.success) {
-                    alert('✓ Wallpaper uploaded successfully!');
+                    alert('Ok wlpr uploaded successfully!');
                 } else {
-                    alert('Failed to upload: ' + result.error);
+                    alert('sorry failed to upload: ' + result.error);
                 }
             }
         } catch (error) {
-            console.error('Upload failed:', error);
-            alert('Upload failed: ' + error);
+            console.error('sorry upload failed:', error);
+            alert('sorry Upload failed: ' + error);
         } finally {
             setUploading(false);
         }
@@ -60,7 +62,7 @@ export default function HomePage({ onNavigateToSource, onNavigateToLive }: HomeP
                     </h1>
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '18px', lineHeight: 1.6 }}>
-                    An open source wallpaper engine, made for performance and easy usage!
+                    An open source wallpaper engine, built for High performance even on heavy workloads!
                 </p>
             </motion.div>
 
@@ -151,20 +153,21 @@ export default function HomePage({ onNavigateToSource, onNavigateToLive }: HomeP
                         gap: '24px',
                     }}
                 >
-                    <StoreCard
-                        title="Static Wallpapers"
-                        description="High-quality images from WallHaven, MoeWalls, and more"
-                        imagePath="/assets/all-sources.png"
-                        type="static"
-                        onClick={() => onNavigateToSource('all')}
-                    />
-                    <StoreCard
-                        title="Live Wallpapers"
-                        description="Animated wallpapers that bring your desktop to life"
-                        imagePath="/assets/live-wallpapers.png"
-                        type="live"
-                        onClick={onNavigateToLive}
-                    />
+
+                <StoreCard
+    title="Static Wallpapers"
+    description="High-quality images from WallHaven, MoeWalls, and more"
+    imagePath={girlImage}  // Use the import
+    type="static"
+    onClick={() => onNavigateToSource('all')}
+/>
+          <StoreCard
+    title="Live Wallpapers"
+    description="Animated wallpapers that bring your desktop to life"
+    imagePath={showcaseVideo}  // Use the imported video
+    type="live"
+    onClick={onNavigateToLive}
+/>
                 </div>
             </motion.div>
         </div>

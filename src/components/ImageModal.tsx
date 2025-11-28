@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, Loader2, Play, X, ZoomIn, ZoomOut, CheckCircle } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { WallpaperItem } from '../types/wallpaper';
-import { getSourceIcon } from './icons';
+// import { getSourceIcon } from './icons';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ImageModalProps {
@@ -20,7 +20,9 @@ const ImageModal = ({ image, onClose, onSetWallpaper, isLoading }: ImageModalPro
     const [url4k, setUrl4k] = useState<string | null>(null);
     const [isResolving, setIsResolving] = useState(false);
     const [isSettingVideo, setIsSettingVideo] = useState(false);
+    const [progressMessage, setProgressMessage] = useState<string>('');
     const hasResolvedRef = useRef(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
         hasResolvedRef.current = false;
@@ -211,7 +213,7 @@ const ImageModal = ({ image, onClose, onSetWallpaper, isLoading }: ImageModalPro
                         <div>
                             <h3 className="text-base font-bold text-gray-200 mb-2">{image.title || 'Untitled'}</h3>
                             <div className="inline-flex items-center gap-2 bg-blue-500/10 px-2.5 py-1.5 rounded-lg border border-blue-500/20">
-                                {getSourceIcon(image.source)}
+                                {/* {getSourceIcon(image.source)} */}
                                 <span className="text-xs font-bold uppercase tracking-wider text-blue-400">{image.source}</span>
                             </div>
                         </div>
@@ -269,24 +271,57 @@ const ImageModal = ({ image, onClose, onSetWallpaper, isLoading }: ImageModalPro
                                 onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                     e.stopPropagation();
                                     const videoUrlToUse = url4k || highResUrl;
-                                    if (!videoUrlToUse || isSettingVideo) {
-                                        if (!videoUrlToUse) alert('Video URL not resolved yet. Please wait...');
+                                    if (!videoUrlToUse) {
+                                        alert('Video URL not resolved yet. Please wait...');
                                         return;
                                     }
+   
+                                    // cancel
+                                    if (abortControllerRef.current) {
+                                        abortControllerRef.current.abort();
+                                        console.log('[ImageModal] Cancelled previous operation');
+                                    }
+                                    abortControllerRef.current = new AbortController();
 
                                     setIsSettingVideo(true);
+                                    setProgressMessage('Initializing...');
+
+                                    // yeawee progress updates (since backend doesnt stream progress)
+                                    const progressSteps = [
+                                        { delay: 0, message: 'Preparing video...' },
+                                        { delay: 2000, message: 'Downloading video...' },
+                                        { delay: 6000, message: 'Processing file...' },
+                                        { delay: 7000, message: 'Setting wallpaper...' },
+                                    ];
+
+                                    let currentStep = 0;
+                                    const progressInterval = setInterval(() => {
+                                        if (currentStep < progressSteps.length && !abortControllerRef.current?.signal.aborted) {
+                                            setProgressMessage(progressSteps[currentStep].message);
+                                            currentStep++;
+                                        }
+                                    }, 1500);
+
                                     invoke('set_video_wallpaper', { videoUrl: videoUrlToUse })
                                         .then((result: any) => {
-                                            setIsSettingVideo(false);
-                                            if (result.success) {
-                                                onClose();
-                                            } else {
-                                                alert('Failed: ' + (result.error || 'Unknown error'));
+                                            clearInterval(progressInterval);
+                                            if (!abortControllerRef.current?.signal.aborted) {
+                                                setIsSettingVideo(false);
+                                                setProgressMessage('');
+                                                if (result.success) {
+                                                    onClose();
+                                                } else {
+                                                    alert('Failed: ' + (result.error || 'Unknown error'));
+                                                }
                                             }
                                         })
                                         .catch((err) => {
-                                            setIsSettingVideo(false);
-                                            alert('Error: ' + err);
+                                            clearInterval(progressInterval);
+                                            if (!abortControllerRef.current?.signal.aborted) {
+                                                setIsSettingVideo(false);
+                                                setProgressMessage('');
+                                                alert('Error: ' + err);
+                                            }
                                         });
                                 }}
                                 disabled={isLoading || isSettingVideo || !highResUrl}
@@ -295,7 +330,7 @@ const ImageModal = ({ image, onClose, onSetWallpaper, isLoading }: ImageModalPro
                                 {isSettingVideo ? (
                                     <>
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        Setting Live Wallpaper...
+                                        <span className="text-xs">{progressMessage || 'Starting...'}</span>
                                     </>
                                 ) : (
                                     <>

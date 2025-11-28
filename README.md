@@ -18,7 +18,7 @@
 
 [📥 Download](#-installation) • [✨ Features](#-features) • [Screenshots](#-screenshots) • [Build](#-build-from-source)
 
-![Preview](assets/Capture.PNG)
+![Preview](assets/rustColorwall.png)
 
 </div>
 
@@ -169,6 +169,5 @@ If this saved you $4 and your GPU:
 *Made because a Wallpaper Engine doesn't need to cost that much MONEY and have so many random purchases or use tons of CPU/GPU*
 
 </div>
-
 
 

@@ -117,26 +117,61 @@ export default function WallpaperCard({
                 )}
 
                 {shouldLoad ? (
-                    <img
-                        ref={imgRef}
-                        alt="Wallpaper"
-                        style={{
-                            width: '100%',
-                            height: 'auto',
-                            display: 'block',
-                            transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                            opacity: imgLoaded ? 1 : 0,
-                        }}
-                        className="group-hover:scale-110"
-                        loading="lazy"
-                        onLoad={() => setImgLoaded(true)}
-                        onError={() => setImgError(true)}
-                        onContextMenu={(e) => {
-                            e.preventDefault();
-                            return false;
-                        }}
-                        draggable={false}
-                    />
+                    <>
+                        {type === 'video' ? (
+                            <video
+                                ref={imgRef as any}
+                                src={thumbnail}
+                                style={{
+                                    width: '100%',
+                                    height: 'auto',
+                                    display: 'block',
+                                    transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    opacity: imgLoaded ? 1 : 0,
+                                }}
+                                className="group-hover:scale-110"
+                                muted
+                                loop
+                                playsInline
+                                onLoadedData={() => setImgLoaded(true)}
+                                onError={() => setImgError(true)}
+                                onMouseEnter={(e) => {
+                                    const video = e.currentTarget;
+                                    video.play().catch(() => { });
+                                }}
+                                onMouseLeave={(e) => {
+                                    const video = e.currentTarget;
+                                    video.pause();
+                                    video.currentTime = 0;
+                                }}
+                                onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                }}
+                            />
+                        ) : (
+                            <img
+                                ref={imgRef}
+                                alt="Wallpaper"
+                                style={{
+                                    width: '100%',
+                                    height: 'auto',
+                                    display: 'block',
+                                    transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    opacity: imgLoaded ? 1 : 0,
+                                }}
+                                className="group-hover:scale-110"
+                                loading="lazy"
+                                onLoad={() => setImgLoaded(true)}
+                                onError={() => setImgError(true)}
+                                onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    return false;
+                                }}
+                                draggable={false}
+                            />
+                        )}
+                    </>
                 ) : (
                     <div
                         style={{
@@ -178,7 +213,6 @@ export default function WallpaperCard({
                     </div>
                 )}
 
-                {/* Premium Hover Overlay */}
                 <div
                     style={{
                         position: 'absolute',
@@ -255,7 +289,6 @@ export default function WallpaperCard({
                     )}
                 </div>
 
-                {/* Active Badge */}
                 {isActive && (
                     <motion.div
                         initial={{ scale: 0 }}
@@ -278,7 +311,6 @@ export default function WallpaperCard({
                     </motion.div>
                 )}
 
-                {/* Action Buttons (for Library) */}
                 {(onSet || onDelete) && (
                     <div
                         style={{

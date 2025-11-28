@@ -224,7 +224,7 @@ export default function SettingsPage() {
                     {videoState.isActive && (
                         <div style={{ marginTop: '12px' }}>
                             <button onClick={handleToggleLiveWallpaper} className="btn-secondary">
-                                ⏸️ Stop Live Wallpaper
+                                Stop Live Wallpaper
                             </button>
                         </div>
                     )}
@@ -265,7 +265,7 @@ export default function SettingsPage() {
                             {cacheInfo.fileCount} files · {cacheInfo.sizeMB} MB
                         </div>
                         <button onClick={handleClearCache} className="btn-secondary">
-                            🗑️ Clear Cache
+                            Clear Cache
                         </button>
                     </div>
                 </div>
@@ -273,10 +273,20 @@ export default function SettingsPage() {
                 <div className="card">
                     <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>About</h2>
                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                        Wallpaper Engine v1.1.0
+                        Colorwall v1.2.0
                     </p>
                     <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                        Made with ❤️ by LaxentaInc
+                        Presented to you by Laxenta Inc.
+                    </p>
+                    <p style={{ fontSize: '15px', color: 'var(--accent)', marginTop: '4px' }}>
+                        <a href="https://laxenta.tech" target="_blank" rel="noopener noreferrer">
+                            https://laxenta.tech
+                        </a>
+                    </p>
+                    <p style={{ fontSize: '21px', color: 'aqua', marginTop: '4px' }}>
+                        <a href="https://github.com/shelleyloosespatience/WallpaperEngine" target="_blank" rel="noopener noreferrer">
+                            Open to contributions, Click to go to our Repository.
+                        </a>
                     </p>
                 </div>
             </div>

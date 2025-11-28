@@ -35,7 +35,7 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                 overflow: 'hidden',
             }}
         >
-            {/* Ambient glow effect */}
+            {/* glow effect js for aesthetics */}
             <AnimatePresence>
                 {hoveredTab && (
                     <motion.div
@@ -45,12 +45,12 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                         transition={{ duration: 0.4 }}
                         style={{
                             position: 'absolute',
-                            width: '100px',
+                            width: '120px',
                             height: '100px',
-                            background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)',
+                            background: 'radial-gradient(circle, var(--accent) 0%, transparent 87%)',
                             borderRadius: '50%',
                             pointerEvents: 'none',
-                            left: '50%',
+                            left: '25%',
                             top: `${(tabs.findIndex(t => t.id === hoveredTab) * 70) + 50}px`,
                             transform: 'translate(-50%, -50%)',
                             filter: 'blur(20px)',
@@ -103,7 +103,7 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                             overflow: 'hidden',
                         }}
                     >
-                        {/* Animated border glow */}
+                        {/* border glow */}
                         {isActive && (
                             <motion.div
                                 initial={{ scale: 0.8, opacity: 0 }}
@@ -138,7 +138,7 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                             </motion.div>
                         )}
 
-                        {/* Active indicator bar */}
+                        {/* indicator bar */}
                         <AnimatePresence>
                             {isActive && (
                                 <motion.div
@@ -166,7 +166,7 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                             )}
                         </AnimatePresence>
 
-                        {/* Ripple effect on hover */}
+                        {/* ripple -> unstable*/}
                         <AnimatePresence>
                             {isHovered && !isActive && (
                                 <>
@@ -200,7 +200,6 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                             )}
                         </AnimatePresence>
 
-                        {/* Icon with floating animation */}
                         <motion.div
                             animate={isActive ? {
                                 y: [0, -3, 0],
@@ -215,7 +214,6 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                             <Icon size={20} />
                         </motion.div>
 
-                        {/* Label with stagger effect */}
                         <motion.span
                             animate={isActive ? {
                                 scale: [1, 1.05, 1],
@@ -235,7 +233,6 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                             {tab.label}
                         </motion.span>
 
-                        {/* Particle burst on active */}
                         {isActive && (
                             <>
                                 {[...Array(6)].map((_, i) => (
@@ -270,8 +267,7 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                 );
             })}
 
-            {/* Bottom decorative element */}
-            <motion.div
+            {/* <motion.div
                 animate={{
                     scaleX: [1, 1.2, 1],
                     opacity: [0.3, 0.6, 0.3],
@@ -291,7 +287,7 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                     background: 'linear-gradient(90deg, transparent, var(--accent), transparent)',
                     borderRadius: '2px',
                 }}
-            />
+            /> */}
         </div>
     );
 }

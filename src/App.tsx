@@ -1,21 +1,23 @@
 import React from 'react';
 import EnhancedTitleBar from './components/titlebar';
 import ModernNavigation from './components/Newnavigation';
-import SnowEffect from './components/SnowEffect';
+// import SnowEffect from './components/SnowEffect';
 import HomePage from './pages/HomePage';
 import LibraryPage from './pages/LibraryPage';
 import StorePage from './pages/StorePage';
 import SettingsPage from './pages/SettingsPage';
 import { AnimatePresence, motion } from 'framer-motion';
-
+// import WelcomeModal from './components/WelcomeModal';
 export default function App() {
     const [activeTab, setActiveTab] = React.useState('home');
     const [browsingSource, setBrowsingSource] = React.useState<string | null>(null);
     const [browsingLive, setBrowsingLive] = React.useState(false);
+    const [isDirectNavigation, setIsDirectNavigation] = React.useState(false);
 
     const handleSourceNavigation = (source: string) => {
         setBrowsingSource(source);
         setBrowsingLive(false);
+        setIsDirectNavigation(false);
         setActiveTab('browse');
     };
 
@@ -37,15 +39,19 @@ export default function App() {
 
     const handleTabChange = (tab: string) => {
         setActiveTab(tab);
-        if (tab !== 'browse') {
+        if (tab === 'browse') {
+            // Direct navigation to store
+            setIsDirectNavigation(true);
+        } else {
             setBrowsingSource(null);
             setBrowsingLive(false);
+            setIsDirectNavigation(false);
         }
     };
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}>
-            <SnowEffect />
+            {/* <SnowEffect /> */}
             <EnhancedTitleBar onSettingsClick={handleSettingsClick} onUserClick={handleUserClick} />
             <ModernNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
@@ -76,6 +82,7 @@ export default function App() {
                             <StorePage
                                 selectedSource={browsingSource || 'all'}
                                 filterType={browsingLive ? 'live' : 'static'}
+                                isDirectNavigation={isDirectNavigation}
                                 onBack={() => setActiveTab('home')}
                             />
                         </motion.div>

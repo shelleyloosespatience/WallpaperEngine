@@ -1,4 +1,4 @@
-//auto generated filler file for now
+// Linux video wallpaper implementation using xwinwrap and mpv
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 
@@ -7,7 +7,6 @@ lazy_static::lazy_static! {
 }
 
 pub fn create_linux_video_wallpaper(video_path: &str) -> Result<(), String> {
-    // Stop any existing wallpaper first
     stop_linux_video_wallpaper()?;
 
     println!("[INFO] Creating Linux video wallpaper for: {}", video_path);
@@ -16,23 +15,21 @@ pub fn create_linux_video_wallpaper(video_path: &str) -> Result<(), String> {
     let mpv_check = Command::new("which").arg("mpv").output();
 
     if mpv_check.is_err() || !mpv_check.unwrap().status.success() {
-        return Err("mpv is not installed. Please install mpv: sudo apt install mpv (Ubuntu/Debian) or sudo pacman -S mpv (Arch)".to_string());
+        return Err("Sadly mpv is not installed and i havent bundled it with the app either for now. Please install mpv: sudo apt install mpv (Ubuntu/Debian) or sudo pacman -S mpv (Arch)".to_string());
     }
-
-    // Get screen dimensions
     let (width, height) = get_screen_dimensions()?;
 
     // Use mpv with xwinwrap to create video wallpaper
-    // xwinwrap wraps a window behind the desktop
+    // xwinwrap wrps a window behind the desktop
     let xwinwrap_check = Command::new("which").arg("xwinwrap").output();
 
     if xwinwrap_check.is_err() || !xwinwrap_check.unwrap().status.success() {
-        // Fallback: try using mpv directly with --wid option
-        // This requires finding the desktop window
+        // fallback: try using mpv directly with --wid option
+        // this requires finding the desktop window
         return create_mpv_wallpaper_direct(video_path, width, height);
     }
 
-    // Use xwinwrap + mpv
+    // xwinwrap + mpv
     let video_path_abs = std::fs::canonicalize(video_path)
         .map_err(|e| format!("Failed to resolve video path: {}", e))?;
 
@@ -56,8 +53,6 @@ pub fn create_linux_video_wallpaper(video_path: &str) -> Result<(), String> {
         .stderr(Stdio::null())
         .spawn()
         .map_err(|e| format!("Failed to start xwinwrap: {}", e))?;
-
-    // Wait a bit to check if process started successfully
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     match child.try_wait() {
@@ -67,7 +62,7 @@ pub fn create_linux_video_wallpaper(video_path: &str) -> Result<(), String> {
             }
         }
         Ok(None) => {
-            // Process is still running, good
+            // running good good 
         }
         Err(e) => {
             return Err(format!("Failed to check xwinwrap process: {}", e));
@@ -81,15 +76,15 @@ pub fn create_linux_video_wallpaper(video_path: &str) -> Result<(), String> {
 }
 
 fn create_mpv_wallpaper_direct(video_path: &str, width: i32, height: i32) -> Result<(), String> {
-    // Alternative method: use mpv with desktop window
-    // This is a fallback if xwinwrap is not available
+    // direct method: use mpv with desktop window
+    // fallback if xwinwrap is not available
     println!("[INFO] Using direct mpv method (xwinwrap not found)");
 
     let video_path_abs = std::fs::canonicalize(video_path)
         .map_err(|e| format!("Failed to resolve video path: {}", e))?;
 
-    // Try to find desktop window (this is desktop-specific)
-    // For GNOME/KDE, we might need different approaches
+    // try to find desktop window (this is desktop-specific)
+    // for gnome/kde, we might need different approaches
     let desktop_window = find_desktop_window()?;
 
     let mut child = Command::new("mpv")
@@ -117,7 +112,7 @@ fn create_mpv_wallpaper_direct(video_path: &str, width: i32, height: i32) -> Res
             }
         }
         Ok(None) => {
-            // Process is still running, good
+            // process is still running, good
         }
         Err(e) => {
             return Err(format!("Failed to check mpv process: {}", e));
@@ -131,8 +126,8 @@ fn create_mpv_wallpaper_direct(video_path: &str, width: i32, height: i32) -> Res
 }
 
 fn find_desktop_window() -> Result<u64, String> {
-    // Try to find desktop window using xdotool or xprop
-    // This is a simplified version - may need adjustment for different DEs
+    // try to find desktop window using xdotool or xprop
+    // this is a simplified version - may need adjustment for different DEs
     let output = Command::new("xdotool")
         .arg("search")
         .arg("--onlyvisible")
@@ -152,7 +147,7 @@ fn find_desktop_window() -> Result<u64, String> {
         }
     }
 
-    // Fallback: try finding nautilus-desktop or similar
+    // fallback: try finding nautilus-desktop or similar
     let output = Command::new("xdotool")
         .arg("search")
         .arg("--onlyvisible")
@@ -179,7 +174,7 @@ fn find_desktop_window() -> Result<u64, String> {
 }
 
 fn get_screen_dimensions() -> Result<(i32, i32), String> {
-    // Try xrandr first
+    // try xrandr first
     let output = Command::new("xrandr")
         .arg("--current")
         .output()
@@ -187,10 +182,10 @@ fn get_screen_dimensions() -> Result<(i32, i32), String> {
 
     if output.status.success() {
         let output_str = String::from_utf8_lossy(&output.stdout);
-        // Parse xrandr output to find primary screen resolution
+        // parse xrandr output to find primary screen resolution
         for line in output_str.lines() {
             if line.contains(" connected") && line.contains(" primary") {
-                // Example: "eDP-1 connected primary 1920x1080+0+0"
+                // example: "eDP-1 connected primary 1920x1080+0+0"
                 if let Some(res_part) = line.split_whitespace().find(|s| s.contains('x')) {
                     if let Some((w, h)) = res_part.split_once('x') {
                         if let (Ok(width), Ok(height)) = (w.parse::<i32>(), h.parse::<i32>()) {
@@ -201,7 +196,7 @@ fn get_screen_dimensions() -> Result<(i32, i32), String> {
             }
         }
 
-        // Fallback: find any connected display
+        // fallback: find any connected display
         for line in output_str.lines() {
             if line.contains(" connected") {
                 if let Some(res_part) = line.split_whitespace().find(|s| s.contains('x')) {
@@ -215,7 +210,7 @@ fn get_screen_dimensions() -> Result<(i32, i32), String> {
         }
     }
 
-    // Fallback to default resolution
+    // fallback to default resolution
     Ok((1920, 1080))
 }
 
@@ -224,13 +219,12 @@ pub fn stop_linux_video_wallpaper() -> Result<(), String> {
 
     let mut process_guard = MPV_PROCESS.lock().unwrap();
     if let Some(mut child) = process_guard.take() {
-        // Try graceful shutdown first
         let _ = child.kill();
         let _ = child.wait();
     }
     drop(process_guard);
 
-    // Also try to kill any remaining mpv/xwinwrap processes
+    // also try to kill any remaining mpv/xwinwrap prcs
     let _ = Command::new("pkill")
         .arg("-f")
         .arg("xwinwrap.*mpv")
@@ -240,6 +234,6 @@ pub fn stop_linux_video_wallpaper() -> Result<(), String> {
 
     std::thread::sleep(std::time::Duration::from_millis(200));
 
-    println!("[SUCCESS] Linux video wallpaper stopped");
+    println!("[SUCCESS] wow Linux video wallpaper stopped");
     Ok(())
 }

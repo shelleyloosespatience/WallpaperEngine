@@ -1,8 +1,8 @@
 import React from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { motion } from 'framer-motion';
-import { Search, ArrowLeft } from 'lucide-react';
-import WallpaperCard from '../components/WallpaperCard';
+import { Search, ArrowLeft, ArrowLeftRight } from 'lucide-react';
+import WelcomeModal from '../components/WelcomeModal';
 import ImageModal from '../components/ImageModal';
 import { LoadingSpinner } from '../components/LoadingState';
 import { WallpaperItem } from '../types/wallpaper';
@@ -10,29 +10,28 @@ import { WallpaperItem } from '../types/wallpaper';
 interface StorePageProps {
     selectedSource: string;
     filterType?: 'all' | 'live' | 'static';
+    isDirectNavigation?: boolean;
     onBack?: () => void;
 }
 
-export default function StorePage({ selectedSource, filterType = 'all', onBack }: StorePageProps) {
+export default function StorePage({ selectedSource, filterType = 'all', isDirectNavigation = false, onBack }: StorePageProps) {
     const [wallpapers, setWallpapers] = React.useState<WallpaperItem[]>([]);
     const [loading, setLoading] = React.useState(false);
-    const [searchQuery, setSearchQuery] = React.useState('anime');
+    const [searchQuery, setSearchQuery] = React.useState('');
     const [hasMore, setHasMore] = React.useState(true);
     const [loadingMore, setLoadingMore] = React.useState(false);
     const [selectedImage, setSelectedImage] = React.useState<WallpaperItem | null>(null);
     const [settingWallpaper, setSettingWallpaper] = React.useState<string | null>(null);
+    const [showWelcome, setShowWelcome] = React.useState(false);
+    const [currentType, setCurrentType] = React.useState<'static' | 'live' | 'all'>(filterType as any);
     const pageRef = React.useRef(1);
 
-    const getSourceName = () => {
-        const names: Record<string, string> = {
-            all: 'Static Wallpapers',
-            wallhaven: 'WallHavenHD',
-            wallpapers: 'WallpapersHD',
-            wallpaperflare: 'Wallpaper4K',
-            motionbgs: 'LiveWallpapers',
-        };
-        return filterType === 'live' ? 'Live Wallpapers' : names[selectedSource] || selectedSource;
-    };
+    // Show welcome modal on direct navigation
+    React.useEffect(() => {
+        if (isDirectNavigation) {
+            setShowWelcome(true);
+        }
+    }, [isDirectNavigation]);
 
     const searchWallpapers = React.useCallback(
         async (pageNum: number = 1, append: boolean = false) => {
@@ -44,16 +43,21 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
             }
 
             try {
-                let sourcesToUse = selectedSource === 'all' ? undefined : [selectedSource];
+                let sourcesToUse: string[];
 
-                if (filterType === 'live') {
+                if (currentType === 'live') {
                     sourcesToUse = ['motionbgs'];
+                } else if (currentType === 'all') {
+                    // Fetch from BOTH static and live sources
+                    sourcesToUse = ['wallpaperflare', 'motionbgs'];
+                } else {
+                    sourcesToUse = selectedSource === 'all' ? ['wallpaperflare'] : [selectedSource];
                 }
 
                 const result: any = await invoke('search_wallpapers', {
                     query: searchQuery || 'anime',
                     sources: sourcesToUse,
-                    limitPerSource: 24,
+                    limitPerSource: 30,
                     randomize: true,
                     page: pageNum,
                     purity: '100',
@@ -76,10 +80,11 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
                         original: item,
                     }));
 
+                    // Don't filter when type is 'all' - show everything mixed!
                     let filtered = normalized;
-                    if (filterType === 'live') {
+                    if (currentType === 'live') {
                         filtered = normalized.filter((item: WallpaperItem) => item.type === 'video');
-                    } else if (filterType === 'static') {
+                    } else if (currentType === 'static') {
                         filtered = normalized.filter((item: WallpaperItem) => item.type === 'image');
                     }
 
@@ -94,19 +99,19 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
                     setHasMore(false);
                 }
             } catch (error) {
-                console.error('sadly the search failed:', error);
+                console.error('Search failed:', error);
                 setHasMore(false);
             } finally {
                 setLoading(false);
                 setLoadingMore(false);
             }
         },
-        [searchQuery, selectedSource, filterType]
+        [searchQuery, selectedSource, currentType]
     );
 
     React.useEffect(() => {
         searchWallpapers(1, false);
-    }, [selectedSource, filterType]); 
+    }, [currentType]);
 
     React.useEffect(() => {
         const handleScroll = () => {
@@ -122,7 +127,7 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
             }
         };
 
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, [loadingMore, loading, hasMore, searchWallpapers]);
 
@@ -130,6 +135,11 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
         pageRef.current = 1;
         setHasMore(true);
         searchWallpapers(1, false);
+    };
+
+    const handleWelcomeChoice = (type: 'static' | 'live' | 'all') => {
+        setCurrentType(type);
+        setShowWelcome(false);
     };
 
     const handleSetWallpaper = async (url: string) => {
@@ -145,7 +155,7 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
                 alert('Failed: ' + result.error);
             }
         } catch (error) {
-            console.error('set wallpaper failed:', error);
+            console.error('Set wallpaper failed:', error);
             alert('Error: ' + error);
         } finally {
             setSettingWallpaper(null);
@@ -153,7 +163,14 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
     };
 
     return (
-        <div style={{ padding: '40px' }}>
+        <div style={{ padding: '40px', scrollBehavior: 'smooth' }}>
+            {showWelcome && (
+                <WelcomeModal
+                    onClose={() => setShowWelcome(false)}
+                    onSelectType={handleWelcomeChoice}
+                />
+            )}
+
             <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -185,9 +202,28 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
                     </motion.button>
                 )}
 
-                <h1 style={{ fontSize: '36px', fontWeight: 800, marginBottom: '28px', letterSpacing: '-0.02em' }}>
-                    {getSourceName()}
-                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
+                    <h1 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
+                        {currentType === 'live' ? 'Live 4k Wallpapers' : currentType === 'static' ? 'Static 4k Wallpapers' : 'All Wallpapers'}
+                    </h1>
+                    <motion.button
+                        whileHover={{ scale: 1.2 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowWelcome(true)}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 0,
+                        }}
+                        title="Change wallpaper type"
+                    >
+                        <ArrowLeftRight size={24} style={{ color: 'var(--text-secondary)' }} />
+                    </motion.button>
+                </div>
 
                 <div style={{ display: 'flex', gap: '16px', maxWidth: '700px' }}>
                     <div style={{ position: 'relative', flex: 1 }}>
@@ -198,6 +234,7 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
                                 top: '50%',
                                 transform: 'translateY(-50%)',
                                 color: 'var(--text-tertiary)',
+                                pointerEvents: 'none',
                             }}
                             size={20}
                         />
@@ -205,91 +242,119 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                             placeholder="Search wallpapers..."
                             style={{
                                 width: '100%',
                                 padding: '16px 20px 16px 52px',
                                 background: 'var(--bg-secondary)',
                                 border: '1px solid var(--border-color)',
-                                borderRadius: '16px',
+                                borderRadius: '14px',
                                 color: 'var(--text-primary)',
                                 fontSize: '15px',
                                 outline: 'none',
-                                transition: 'border 0.2s',
+                                transition: 'border-color 0.2s',
                             }}
-                            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                            onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border-color)')}
                         />
                     </div>
-
                     <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={handleSearch}
-                        disabled={loading}
                         style={{
                             padding: '16px 32px',
-                            background: loading ? 'var(--bg-tertiary)' : 'linear-gradient(135deg, var(--accent), #1a86d8)',
-                            color: 'white',
+                            background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))',
                             border: 'none',
-                            borderRadius: '16px',
-                            cursor: loading ? 'not-allowed' : 'pointer',
-                            fontWeight: 700,
+                            borderRadius: '14px',
+                            color: 'white',
                             fontSize: '15px',
-                            boxShadow: loading ? 'none' : '0 4px 16px rgba(0, 120, 212, 0.3)',
+                            fontWeight: 600,
+                            cursor: 'pointer',
                         }}
                     >
-                        {loading ? 'Searching...' : 'Search'}
+                        Search
                     </motion.button>
                 </div>
             </motion.div>
 
             {loading && wallpapers.length === 0 ? (
                 <div style={{ padding: '80px 0' }}>
-                    <LoadingSpinner text="Yaweee!! Discovering wallpapers..." />
+                    <LoadingSpinner text="Loading wallpapers..." />
                 </div>
             ) : wallpapers.length === 0 ? (
                 <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     style={{
                         textAlign: 'center',
-                        padding: '100px 40px',
-                        background: 'var(--bg-secondary)',
-                        borderRadius: '24px',
-                        border: '1px solid var(--border-color)',
+                        padding: '80px 20px',
+                        color: 'var(--text-secondary)',
                     }}
                 >
-                    <div style={{ fontSize: '80px', marginBottom: '20px', opacity: 0.2 }}>🔍</div>
-                    <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '12px' }}>No wallpapers found</h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-                        Try a different search term
-                    </p>
+                    <h3 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>No wallpapers found</h3>
+                    <p style={{ fontSize: '14px' }}>Try a different search query</p>
                 </motion.div>
             ) : (
                 <>
                     <div
                         style={{
-                            columns: '4 300px',
-                            columnGap: '24px',
+                            columnCount: 'auto',
+                            columnWidth: '320px',
+                            columnGap: '16px',
+                            marginBottom: '40px',
                         }}
                     >
-                        {wallpapers.map((wallpaper) => (
-                            <WallpaperCard
+                        {wallpapers.map((wallpaper, index) => (
+                            <motion.div
                                 key={wallpaper.id}
-                                id={wallpaper.id}
-                                thumbnail={wallpaper.thumbnailUrl || wallpaper.imageUrl}
-                                type={wallpaper.type}
-                                source={wallpaper.source}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.02, duration: 0.3 }}
                                 onClick={() => setSelectedImage(wallpaper)}
-                                isVisible={true}
-                            />
+                                style={{
+                                    breakInside: 'avoid',
+                                    marginBottom: '16px',
+                                    cursor: 'pointer',
+                                    borderRadius: '12px',
+                                    overflow: 'hidden',
+                                    position: 'relative',
+                                }}
+                            >
+                                <motion.img
+                                    whileHover={{ scale: 1.02 }}
+                                    transition={{ duration: 0.2 }}
+                                    src={wallpaper.thumbnailUrl}
+                                    alt={wallpaper.title}
+                                    style={{
+                                        width: '100%',
+                                        display: 'block',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                    }}
+                                    loading="lazy"
+                                />
+                                {/* LIVE badge for video wallpapers */}
+                                {wallpaper.type === 'video' && (
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            top: '12px',
+                                            right: '12px',
+                                            fontSize: '13px',
+                                            fontWeight: 700,
+                                            color: 'white',
+                                            textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
+                                        }}
+                                    >
+                                        Live
+                                    </div>
+                                )}
+                            </motion.div>
                         ))}
                     </div>
 
                     {loadingMore && (
-                        <div style={{ padding: '60px 0', textAlign: 'center' }}>
+                        <div style={{ textAlign: 'center', padding: '32px 0' }}>
                             <LoadingSpinner text="Loading more..." />
                         </div>
                     )}
@@ -298,7 +363,7 @@ export default function StorePage({ selectedSource, filterType = 'all', onBack }
                         <div
                             style={{
                                 textAlign: 'center',
-                                padding: '60px 0',
+                                padding: '32px 0',
                                 color: 'var(--text-tertiary)',
                                 fontSize: '14px',
                             }}

@@ -3,7 +3,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { User, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import LaxentaLogo from './LaxentaLogo';
-
+// user PROFILE NOT YET IMPLEMENTED to anyone seeing the code lmao
 interface EnhancedTitleBarProps {
     onSettingsClick?: () => void;
     onUserClick?: () => void;
@@ -58,13 +58,13 @@ export default function EnhancedTitleBar({ onSettingsClick, onUserClick }: Enhan
                         <motion.div
                             key={i}
                             animate={{
-                                scale: [1, 2, 1],
+                                scale: [1, 1.8, 1], 
                                 opacity: [0.5, 0, 0.5],
                             }}
                             transition={{
                                 duration: 3,
                                 repeat: Infinity,
-                                delay: i * 1.8,
+                                delay: i * 1.9,
                                 ease: 'easeOut',
                             }}
                             style={{

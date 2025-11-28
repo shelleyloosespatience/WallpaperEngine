@@ -38,7 +38,7 @@ fn get_settings_file() -> Result<PathBuf, String> {
 
 async fn download_image(url: &str) -> Result<PathBuf, String> {
     let client = reqwest::Client::builder()
-        .user_agent("WallpaperApp/1.0")
+        .user_agent("LaxentaInc/1.0")
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -68,7 +68,7 @@ async fn download_image(url: &str) -> Result<PathBuf, String> {
 }
 
 // TAURI COMMANDS
-
+// debug derive
 #[tauri::command]
 async fn search_wallpapers(
     query: String,
@@ -205,7 +205,7 @@ async fn set_wallpaper(image_url: String) -> Result<WallpaperResponse, String> {
             return Ok(WallpaperResponse {
                 success: false,
                 message: None,
-                error: Some(format!("Failed to download image: {}", e)),
+                error: Some(format!("failed to download image: {}", e)),
             });
         }
     };
@@ -219,7 +219,7 @@ async fn set_wallpaper(image_url: String) -> Result<WallpaperResponse, String> {
         Err(e) => Ok(WallpaperResponse {
             success: false,
             message: None,
-            error: Some(format!("Failed to set wallpaper: {}", e)),
+            error: Some(format!("failed to set wallpaper: {}", e)),
         }),
     }
 }
@@ -235,7 +235,7 @@ async fn get_current_wallpaper() -> Result<WallpaperResponse, String> {
         Err(e) => Ok(WallpaperResponse {
             success: false,
             message: None,
-            error: Some(format!("Failed to get wallpaper: {}", e)),
+            error: Some(format!("failed to get wallpaper: {}", e)),
         }),
     }
 }
@@ -281,7 +281,7 @@ async fn clear_cache() -> Result<ClearCacheResponse, String> {
     let cache_dir = match get_cache_dir() {
         Ok(dir) => dir,
         Err(e) => {
-            return Err(format!("Failed to get cache directory: {}", e));
+            return Err(format!("NOT OK failed to get cache directory: {}", e));
         }
     };
 
@@ -310,15 +310,15 @@ async fn resolve_wallpaperflare_highres(
     detail_url: String,
 ) -> Result<ResolveHighResResponse, String> {
     println!("info: resolving high-res for: {}", detail_url);
-
+    // x84 or x64 doesn't really matter
     let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x84) AppleWebKit/537.36")
         .build()
         .map_err(|e| e.to_string())?;
 
     match resolve_wallpaperflare_download(&detail_url, &client).await {
         Ok((high_res_url, _, _)) => {
-            println!("ok: resolved to: {}", high_res_url);
+            println!("OK resolved to: {}", high_res_url);
             Ok(ResolveHighResResponse {
                 success: true,
                 url: Some(high_res_url),
@@ -340,7 +340,7 @@ async fn resolve_wallpaperflare_highres(
 
 #[tauri::command]
 async fn resolve_motionbgs_video(detail_url: String) -> Result<ResolveHighResResponse, String> {
-    println!("info: resolving MotionBGs video: {}", detail_url);
+    println!("info: RESOLVING motionBg video: {}", detail_url);
 
     match scrape_motionbgs_detail(&detail_url).await {
         Ok((video_url, video_url_4k)) => {
@@ -377,7 +377,7 @@ async fn set_video_wallpaper(
             return Ok(WallpaperResponse {
                 success: false,
                 message: None,
-                error: Some(format!("Failed to download video: {}", e)),
+                error: Some(format!("failed to download video: {}", e)),
             });
         }
     };
@@ -391,7 +391,7 @@ async fn set_video_wallpaper(
         Err(e) => Ok(WallpaperResponse {
             success: false,
             message: None,
-            error: Some(format!("Failed to set video wallpaper: {}", e)),
+            error: Some(format!("failed to set video wallpaper: {}", e)),
         }),
     }
 }
@@ -401,7 +401,7 @@ async fn stop_video_wallpaper_command(app: tauri::AppHandle) -> Result<Wallpaper
     match stop_video_wallpaper(&app) {
         Ok(_) => Ok(WallpaperResponse {
             success: true,
-            message: Some("Video wallpaper stopped".to_string()),
+            message: Some("video wallpaper stopped".to_string()),
             error: None,
         }),
         Err(e) => Ok(WallpaperResponse {
@@ -417,8 +417,7 @@ fn get_video_wallpaper_status() -> VideoWallpaperState {
     get_video_wallpaper_state()
 }
 
-// User Wallpaper Management Commands
-
+// usr wallpaper Management cmds
 #[tauri::command]
 async fn list_user_wallpapers() -> Result<UserWallpapersResponse, String> {
     let wallpapers_dir = get_user_wallpapers_dir()?;
@@ -495,7 +494,7 @@ async fn upload_user_wallpaper(source_path: String) -> Result<WallpaperResponse,
 
     let dest_path = dest_dir.join(&file_name);
 
-    std::fs::copy(source, &dest_path).map_err(|e| format!("Failed to copy file: {}", e))?;
+    std::fs::copy(source, &dest_path).map_err(|e| format!("failed to copy file: {}", e))?;
 
     Ok(WallpaperResponse {
         success: true,
@@ -516,7 +515,7 @@ async fn delete_user_wallpaper(wallpaper_path: String) -> Result<WallpaperRespon
         });
     }
 
-    std::fs::remove_file(path).map_err(|e| format!("Failed to delete file: {}", e))?;
+    std::fs::remove_file(path).map_err(|e| format!("failed to delete file: {}", e))?;
 
     Ok(WallpaperResponse {
         success: true,
@@ -525,8 +524,7 @@ async fn delete_user_wallpaper(wallpaper_path: String) -> Result<WallpaperRespon
     })
 }
 
-// Settings Management Commands
-
+// Management cmds
 #[tauri::command]
 async fn get_settings() -> Result<SettingsResponse, String> {
     let settings_file = get_settings_file()?;
@@ -553,13 +551,13 @@ async fn get_settings() -> Result<SettingsResponse, String> {
             Err(e) => Ok(SettingsResponse {
                 success: false,
                 settings: None,
-                error: Some(format!("Failed to parse settings: {}", e)),
+                error: Some(format!("failed to parse settings: {}", e)),
             }),
         },
         Err(e) => Ok(SettingsResponse {
             success: false,
             settings: None,
-            error: Some(format!("Failed to read settings: {}", e)),
+            error: Some(format!("failed to read settings: {}", e)),
         }),
     }
 }
@@ -568,9 +566,9 @@ async fn get_settings() -> Result<SettingsResponse, String> {
 async fn save_settings(settings: AppSettings) -> Result<SettingsResponse, String> {
     let settings_file = get_settings_file()?;
     let json = serde_json::to_string_pretty(&settings)
-        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+        .map_err(|e| format!("failed to serialize settings: {}", e))?;
 
-    std::fs::write(&settings_file, json).map_err(|e| format!("Failed to write settings: {}", e))?;
+    std::fs::write(&settings_file, json).map_err(|e| format!("failed to write settings: {}", e))?;
 
     Ok(SettingsResponse {
         success: true,
@@ -621,27 +619,19 @@ fn main() {
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
 
-            // Handle window close event to hide instead of quit
-            let app_handle = app.handle().clone();
+            // this will continue running in background :)
+            let _app_handle = app.handle().clone();
             window.on_window_event(move |event| {
-                if let WindowEvent::CloseRequested { api, .. } = event {
+                if let WindowEvent::CloseRequested { .. } = event {
                     println!(
-                        "[main] Close button clicked - hiding window (wallpaper stays active)"
+                        "[main] Close button clicked - UI will close, wallpaper continues in background"
                     );
-
-                    api.prevent_close();
-
-                    if let Some(win) = app_handle.get_webview_window("main") {
-                        let _ = win.hide();
-                        println!("[main] Window hidden, wallpaper continues in background");
-                    }
                 }
             });
 
-            // Setup system tray
+            // systray
             use tauri::menu::{Menu, MenuItem};
             use tauri::tray::{MouseButton, TrayIconBuilder};
-
             let show_item =
                 MenuItem::with_id(app, "show", "Show Window", true, None::<&str>).unwrap();
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>).unwrap();
@@ -653,6 +643,20 @@ fn main() {
                 .menu(&menu)
                 .on_menu_event(move |app, event| match event.id.as_ref() {
                     "show" => {
+                        // Check if window exists, if not recreate it
+                        if app.get_webview_window("main").is_none() {
+                            println!("[main] Window doesn't exist, recreating...");
+
+                            use tauri::{WebviewUrl, WebviewWindowBuilder};
+                            let _ = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+                                .title("ColorWall - Wallpaper Engine")
+                                .inner_size(1000.0, 900.0)
+                                .resizable(true)
+                                .decorations(false)
+                                .transparent(false)
+                                .build();
+                        }
+
                         if let Some(window) = app.get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();
@@ -676,6 +680,24 @@ fn main() {
                         ..
                     } = event
                     {
+                        // if not recreate it (also uh we disable the decorations explicitly cz it gets double title bars)
+                        if tray.app_handle().get_webview_window("main").is_none() {
+                            println!("[main] Saddddly Window doesn't exist, recreating from tray click...");
+
+                            use tauri::{WebviewUrl, WebviewWindowBuilder};
+                            let _ = WebviewWindowBuilder::new(
+                                tray.app_handle(),
+                                "main",
+                                WebviewUrl::default(),
+                            )
+                            .title("ColorWall - Wallpaper Engine")
+                            .inner_size(1000.0, 900.0)
+                            .resizable(true)
+                            .decorations(false)
+                            .transparent(false)
+                            .build();
+                        }
+
                         if let Some(window) = tray.app_handle().get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();

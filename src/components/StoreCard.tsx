@@ -9,7 +9,9 @@ interface StoreCardProps {
     onClick: () => void;
 }
 
-export default function StoreCard({ title, description, type, onClick }: StoreCardProps) {
+export default function StoreCard({ title, description, imagePath, type, onClick }: StoreCardProps) {
+    const isVideo = imagePath.match(/\.(mp4|webm|mkv)$/i);
+
     return (
         <motion.div
             whileHover={{ scale: 1.02, y: -4 }}
@@ -28,23 +30,56 @@ export default function StoreCard({ title, description, type, onClick }: StoreCa
                 style={{
                     width: '100%',
                     height: '280px',
-                    background: `linear-gradient(135deg, ${type === 'live' ? '#4f46e5, #7c3aed' : '#0ea5e9, #06b6d4'})`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     position: 'relative',
                     overflow: 'hidden',
+                    background: '#000',
                 }}
             >
-                <div style={{ fontSize: '80px', opacity: 0.2 }}>
-                    {type === 'live' ? <Play size={80} /> : <ImageIcon size={80} />}
-                </div>
+                {/* Render video or image based on file type */}
+                {isVideo ? (
+                    <video
+                        src={imagePath}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                        }}
+                    />
+                ) : (
+                    <img
+                        src={imagePath}
+                        alt={title}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                        }}
+                    />
+                )}
+                
+                {/* Overlay gradient for better text readability */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.1))',
+                        pointerEvents: 'none',
+                    }}
+                />
+                
                 <div
                     style={{
                         position: 'absolute',
                         top: '16px',
                         right: '16px',
-                        background: 'rgba(0, 0, 0, 0.4)',
+                        background: 'rgba(0, 0, 0, 0.6)',
                         backdropFilter: 'blur(10px)',
                         padding: '6px 12px',
                         borderRadius: '20px',
@@ -53,6 +88,7 @@ export default function StoreCard({ title, description, type, onClick }: StoreCa
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
+                        color: 'white',
                     }}
                 >
                     {type === 'live' ? <Play size={14} /> : <ImageIcon size={14} />}

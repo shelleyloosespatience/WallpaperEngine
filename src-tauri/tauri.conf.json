@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ColorWall",
-  "version": "1.2.0",  
-  "identifier": "com.laxenta.colorwall", 
+  "version": "1.2.0",
+  "identifier": "com.laxenta.colorwall",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -13,15 +13,14 @@
     "windows": [
       {
         "label": "main",
-        "title": "ColorWall - Wallpaper Engine @2025 Laxenta Inc", 
-        "width": 1000, 
+        "title": "ColorWall - Wallpaper Engine @2025 Laxenta Inc",
+        "width": 1000,
         "height": 900,
         "resizable": true,
         "fullscreen": false,
         "maximized": false,
         "decorations": false,
-        "transparent": true,
-        "skipTaskbar": false
+        "transparent": true
       },
       {
         "label": "wallpaper",
@@ -29,35 +28,45 @@
         "width": 1000,
         "height": 900,
         "resizable": false,
-        "fullscreen": true,
+        "fullscreen": false,
         "maximized": false,
         "decorations": false,
         "transparent": false,
-        "skipTaskbar": true,
+        "skipTaskbar": false,
         "visible": false
       }
     ],
     "security": {
       "csp": null,
-      "capabilities": ["default"] 
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$TEMP/user_wallpapers/*",
+          "$RESOURCE/**"
+        ]
+      },
+      "capabilities": [
+        "default"
+      ]
     }
   },
-"bundle": {
-  "active": true,
-  "publisher": "Laxenta Inc",
-  "targets": "all",
-  "icon": [
-    "icons/32x32.png",
-    "icons/128x128.png",
-    "icons/128x128@2x.png",
-    "icons/icon.icns",
-    "icons/icon.ico",
-    "icons/icon.png"
-  ],
-  "windows": {
-    "nsis": {
-      "installerIcon": "icons/icon.ico"
+  "bundle": {
+    "active": true,
+    "publisher": "Laxenta Inc",
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico",
+      "icons/icon.png",
+      "assets/**/*"
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
     }
   }
-}
 }
