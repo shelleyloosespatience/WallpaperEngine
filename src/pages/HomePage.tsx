@@ -5,7 +5,7 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import StoreCard from '../components/StoreCard';
 import girlImage from '../assets/girlieeeee.jpg';
-import showcaseVideo from '../assets/battlefield-sekiro-shadows-die-twice-moewalls-com.mp4';
+import showcaseVideo from '../assets/porsche-gt3rs-in-rain.3840x2160.mp4';
 
 interface HomePageProps {
     onNavigateToSource: (source: string) => void;
