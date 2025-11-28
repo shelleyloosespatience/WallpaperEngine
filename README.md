@@ -18,7 +18,7 @@
 
 [📥 Download](#-installation) • [✨ Features](#-features) • [Screenshots](#-screenshots) • [Build](#-build-from-source)
 
-![Preview](assets/rustColorwall.png)
+![Preview](assets/Capture.PNG)
 
 </div>
 
