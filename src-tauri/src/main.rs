@@ -653,7 +653,6 @@ fn main() {
                                 .inner_size(1000.0, 900.0)
                                 .resizable(true)
                                 .decorations(false)
-                                .transparent(false)
                                 .build();
                         }
 
@@ -694,7 +693,6 @@ fn main() {
                             .inner_size(1000.0, 900.0)
                             .resizable(true)
                             .decorations(false)
-                            .transparent(false)
                             .build();
                         }
 

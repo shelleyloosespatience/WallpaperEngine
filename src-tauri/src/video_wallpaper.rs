@@ -161,28 +161,39 @@ pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str) -> Resu
     #[cfg(target_os = "windows")]
     {
         create_windows_wmf_wallpaper(video_path)?;
+
+        // Update state
+        let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
+        state.is_active = true;
+        state.video_path = Some(video_path.to_string());
+        state.video_url = Some(format!("file://{}", video_path));
+        let _ = save_wallpaper_state(&state);
+        drop(state);
+
+        println!("[main] background task: wallpaper created successfully");
+        return Ok(());
     }
 
     #[cfg(target_os = "linux")]
     {
         video_wallpaper_linux::create_linux_video_wallpaper(video_path)?;
+
+        // Update state
+        let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
+        state.is_active = true;
+        state.video_path = Some(video_path.to_string());
+        state.video_url = Some(format!("file://{}", video_path));
+        let _ = save_wallpaper_state(&state);
+        drop(state);
+
+        println!("[main] background task: wallpaper created successfully");
+        return Ok(());
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
         return Err("Video wallpapers not supported on this platform".into());
     }
-
-    // Update state
-    let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
-    state.is_active = true;
-    state.video_path = Some(video_path.to_string());
-    state.video_url = Some(format!("file://{}", video_path));
-    let _ = save_wallpaper_state(&state);
-    drop(state);
-
-    println!("[main] background task: wallpaper created successfully");
-    Ok(())
 }
 
 #[cfg(target_os = "windows")]
@@ -282,7 +293,7 @@ fn stop_windows_wmf_wallpaper() -> Result<(), String> {
     println!("[video_wallpaper] Stopping Windows WMF wallpaper...");
     desktop_injection::stop_watchdog();
     thread::sleep(Duration::from_millis(200));
-  // kil (0)
+    // kil (0)
     let mut player_lock = WMF_PLAYER_INSTANCE.lock().unwrap();
     if let Some(mut player) = player_lock.take() {
         println!("[video_wallpaper] Shutting down player...");
@@ -419,7 +430,7 @@ pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
                 if std::path::Path::new(video_path).exists() {
                     println!("[startup] Found saved wallpaper, restoring: {}", video_path);
 
-                    // for slow devices and proprt init 
+                    // for slow devices and proprt init
                     std::thread::sleep(std::time::Duration::from_millis(800));
 
                     match create_video_wallpaper_window(app, video_path) {
