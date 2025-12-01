@@ -4,6 +4,7 @@
 #[cfg(target_os = "windows")]
 mod desktop_injection;
 mod models;
+mod os_version;
 mod scraper;
 mod video_wallpaper;
 #[cfg(target_os = "windows")]

@@ -28,6 +28,7 @@ which = "6"
 rust-embed = "8.9"
 thread = "0.0.1"
 md5 = "0.7"
+os-version = "0.2.1"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [

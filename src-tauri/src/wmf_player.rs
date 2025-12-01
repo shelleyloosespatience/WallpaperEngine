@@ -1,5 +1,5 @@
 use windows::core::{implement, w, BSTR, PCWSTR};
-use windows::Win32::Foundation::{HINSTANCE, HMODULE, HWND, LPARAM, LRESULT, WPARAM};
+use windows::Win32::Foundation::{COLORREF, HINSTANCE, HMODULE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Direct3D::D3D_DRIVER_TYPE_HARDWARE;
 use windows::Win32::Graphics::Direct3D11::*;
 use windows::Win32::Graphics::Dxgi::Common::*;
@@ -7,6 +7,8 @@ use windows::Win32::Graphics::Gdi::{BeginPaint, EndPaint, PAINTSTRUCT};
 use windows::Win32::Media::MediaFoundation::*;
 use windows::Win32::System::Com::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
+
+use crate::os_version::get_windows_version;
 
 type WmfResult<T> = std::result::Result<T, String>;
 
@@ -59,8 +61,8 @@ impl WmfPlayer {
             })
         }
     }
-  // happens, windows canonacalizes thier urls or somthh and browsers don't understand that path
-  // extremely important step like literally ln73
+    // happens, windows canonacalizes thier urls or somthh and browsers don't understand that path
+    // extremely important step like literally ln73
     pub fn load_video(&self, path: &str) -> WmfResult<()> {
         println!("[wmf] Loading video");
 
@@ -199,17 +201,24 @@ unsafe fn create_player_window(width: i32, height: i32) -> WmfResult<HWND> {
 
     let _ = RegisterClassW(&wc);
 
-    let ex_style = WS_EX_LAYERED
-        | WS_EX_TRANSPARENT
-        | WS_EX_TOOLWINDOW
-        | WS_EX_NOACTIVATE
-        | WS_EX_NOPARENTNOTIFY;
+    let win_ver = get_windows_version();
+
+    // OS-SPECIFIC WINDOW CREATION
+    // Windows 11 24H2+: Requires WS_EX_LAYERED for raised desktop with layered ShellView
+    // Windows 10/11 Pre-24H2: Use WS_EX_TRANSPARENT to avoid D3D11 swap chain conflicts
+    let ex_style = if win_ver.is_windows_11_24h2_plus() {
+        println!("[wmf_player] Using Windows 11 24H2+ window style (WS_EX_LAYERED)");
+        WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOPARENTNOTIFY
+    } else {
+        println!("[wmf_player] Using Windows 10/11 window style (WS_EX_TRANSPARENT)");
+        WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOPARENTNOTIFY
+    };
 
     let hwnd = CreateWindowExW(
         ex_style,
         class_name,
         w!("WMF Player"),
-        WS_POPUP,
+        WS_POPUP, // Created as POPUP (no WS_DISABLED), converted to CHILD during injection
         0,
         0,
         width,
@@ -221,9 +230,15 @@ unsafe fn create_player_window(width: i32, height: i32) -> WmfResult<HWND> {
     )
     .map_err(|e| format!("CreateWindowExW failed: {}", e))?;
 
-    use windows::Win32::Foundation::COLORREF;
-    use windows::Win32::UI::WindowsAndMessaging::{SetLayeredWindowAttributes, LWA_ALPHA};
-    let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA);
+    // Initialize layered window attributes ONLY on Windows 11 24H2+
+    // On Windows 10, layered windows with D3D11 swap chains can cause issues
+    if win_ver.is_windows_11_24h2_plus() {
+        println!("[wmf_player] Initializing layered window attributes");
+        SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA)
+            .map_err(|e| format!("SetLayeredWindowAttributes failed: {}", e))?;
+    }
+
+    // Hide window initially - will be shown after injection
     let _ = SetWindowPos(
         hwnd,
         Some(HWND_BOTTOM),
@@ -243,16 +258,36 @@ unsafe extern "system" fn wnd_proc(
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
+    // Log every message to identify what causes the hang
+    if msg != WM_PAINT && msg != WM_ERASEBKGND && msg != 0x0113
+    /* WM_TIMER */
+    {
+        println!("[wmf_wnd] Received message: 0x{:04X}", msg);
+    }
+
     match msg {
         WM_DESTROY => {
+            println!("[wmf_wnd] WM_DESTROY");
             PostQuitMessage(0);
             LRESULT(0)
         }
-        WM_MOUSEACTIVATE => LRESULT(MA_NOACTIVATE as isize),
-        WM_NCHITTEST => LRESULT(HTTRANSPARENT as isize),
+        WM_MOUSEACTIVATE => {
+            println!("[wmf_wnd] WM_MOUSEACTIVATE - returning MA_NOACTIVATE");
+            LRESULT(MA_NOACTIVATE as isize)
+        }
+        WM_NCHITTEST => {
+            // Return HTNOWHERE immediately without logging (too many messages)
+            LRESULT(HTNOWHERE as isize)
+        }
         WM_SETCURSOR => LRESULT(1),
-        WM_ACTIVATE => LRESULT(0),
-        WM_SETFOCUS => LRESULT(0),
+        WM_ACTIVATE => {
+            println!("[wmf_wnd] WM_ACTIVATE");
+            LRESULT(0)
+        }
+        WM_SETFOCUS => {
+            println!("[wmf_wnd] WM_SETFOCUS");
+            LRESULT(0)
+        }
         WM_PAINT => {
             let mut ps = PAINTSTRUCT::default();
             let _hdc = BeginPaint(hwnd, &mut ps);
@@ -260,7 +295,13 @@ unsafe extern "system" fn wnd_proc(
             LRESULT(0)
         }
         WM_ERASEBKGND => LRESULT(1),
-        _ => DefWindowProcW(hwnd, msg, wparam, lparam),
+        _ => {
+            // Log unhandled messages
+            if msg >= 0x0200 && msg <= 0x020E {
+                println!("[wmf_wnd] Mouse message: 0x{:04X}", msg);
+            }
+            DefWindowProcW(hwnd, msg, wparam, lparam)
+        }
     }
 }
 
@@ -384,7 +425,7 @@ impl MediaEngineNotify {
 
 impl IMFMediaEngineNotify_Impl for MediaEngineNotify_Impl {
     fn EventNotify(&self, event: u32, _param1: usize, _param2: u32) -> windows::core::Result<()> {
-       // ignore event spams
+        // ignore event spams
         if event == 7 {
             println!("[wmf] Media error event");
         }

@@ -2684,6 +2684,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "os-version"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f54fba9ad24f7b25a14707392adf11fb365f7917983a9659fbc2b9a7d4ea9ef"
+dependencies = [
+ "anyhow",
+ "plist",
+ "uname",
+ "winapi",
+]
+
+[[package]]
 name = "pango"
 version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4858,6 +4870,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "uname"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b72f89f0ca32e4db1c04e2a72f5345d59796d4866a1ee0609084569f73683dc8"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "unic-char-property"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5043,6 +5064,7 @@ version = "2.2.1"
 dependencies = [
  "lazy_static",
  "md5",
+ "os-version",
  "rand 0.8.5",
  "regex",
  "reqwest",
