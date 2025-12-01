@@ -5,7 +5,7 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import StoreCard from '../components/StoreCard';
 import girlImage from '../assets/girlieeeee.jpg';
-import showcaseVideo from '../assets/porsche.mp4';
+import showcase from '../assets/awewww.jpg';
 
 interface HomePageProps {
     onNavigateToSource: (source: string) => void;
@@ -157,14 +157,14 @@ export default function HomePage({ onNavigateToSource, onNavigateToLive }: HomeP
                 <StoreCard
     title="Static Wallpapers"
     description="High-quality images from WallHaven, MoeWalls, and more"
-    imagePath={girlImage}  // Use the import
+    imagePath={girlImage} 
     type="static"
     onClick={() => onNavigateToSource('all')}
 />
           <StoreCard
     title="Live Wallpapers"
     description="Animated wallpapers that bring your desktop to life"
-    imagePath={showcaseVideo}  // Use the imported video
+    imagePath={showcase} 
     type="live"
     onClick={onNavigateToLive}
 />
