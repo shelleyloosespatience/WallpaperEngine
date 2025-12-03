@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+# mpv binary lol
+mpv.exe
 
 # Added by cargo
 

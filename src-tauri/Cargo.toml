@@ -4,6 +4,18 @@ version = "2.2.1"
 description = "WallpaperEngine"
 authors = ["LaxentaInc"]
 edition = "2021"
+default-run = "wallpaperengine"
+
+# Main Tauri application
+[[bin]]
+name = "wallpaperengine"
+path = "src/main.rs"
+
+# Separate wallpaper player process (DWM-isolated)
+[[bin]]
+name = "wallpaper-player"
+path = "src/player/main.rs"
+
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

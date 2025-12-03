@@ -1,14 +1,12 @@
 // prevents console window on windows in release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-#[cfg(target_os = "windows")]
-mod desktop_injection;
 mod models;
-mod os_version;
 mod scraper;
 mod video_wallpaper;
-#[cfg(target_os = "windows")]
-mod wmf_player;
+
+// Process manager for wallpaper-player sidecar
+mod process_manager;
 
 use models::*;
 use scraper::*;
