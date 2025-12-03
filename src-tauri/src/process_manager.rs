@@ -115,29 +115,30 @@ pub fn stop_player() -> Result<(), String> {
     Ok(())
 }
 
-/// Check if player is running (uh for testing
-pub fn is_player_running() -> bool {
-    let mut player_lock = PLAYER_PROCESS.lock().unwrap();
+// Check if player is running for testing
 
-    if let Some(child) = player_lock.as_mut() {
-        // Check if process is still alive
-        match child.try_wait() {
-            Ok(Some(_status)) => {
-                // Process exited
-                *player_lock = None;
-                false
-            }
-            Ok(None) => {
-                // Process still running
-                true
-            }
-            Err(_) => {
-                // Error checking, assume dead
-                *player_lock = None;
-                false
-            }
-        }
-    } else {
-        false
-    }
-}
+// pub fn is_player_running() -> bool {
+//     let mut player_lock = PLAYER_PROCESS.lock().unwrap();
+
+//     if let Some(child) = player_lock.as_mut() {
+//         // Check if process is still alive
+//         match child.try_wait() {
+//             Ok(Some(_status)) => {
+//                 // Process exited
+//                 *player_lock = None;
+//                 false
+//             }
+//             Ok(None) => {
+//                 // Process still running
+//                 true
+//             }
+//             Err(_) => {
+//                 // Error checking, assume dead
+//                 *player_lock = None;
+//                 false
+//             }
+//         }
+//     } else {
+//         false
+//     }
+// }

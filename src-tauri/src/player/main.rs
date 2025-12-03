@@ -11,6 +11,7 @@ mod desktop_injection;
 mod os_version;
 mod wmf_player;
 
+#[cfg(target_os = "windows")]
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -27,8 +28,6 @@ fn main() {
     println!("[player] Starting wallpaper player");
     println!("[player] Video: {}", video_path);
     println!("[player] Resolution: {}x{}", width, height);
-
-    // Initialize COM for this process
     unsafe {
         use windows::Win32::System::Com::{CoInitializeEx, COINIT_APARTMENTTHREADED};
         let hr = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
@@ -38,7 +37,6 @@ fn main() {
         }
     }
 
-    // Create WMF player
     let player = match wmf_player::WmfPlayer::new(width, height) {
         Ok(p) => p,
         Err(e) => {
@@ -49,7 +47,6 @@ fn main() {
 
     println!("[player] WMF player created");
 
-    // Load video
     if let Err(e) = player.load_video(video_path) {
         eprintln!("[player] Failed to load video: {}", e);
         std::process::exit(1);
@@ -57,10 +54,8 @@ fn main() {
 
     println!("[player] Video loaded");
 
-    // Get window handle
     let hwnd = player.hwnd();
 
-    // Inject behind desktop
     if let Err(e) = desktop_injection::inject_behind_desktop(hwnd, 0, 0, width, height) {
         eprintln!("[player] Failed to inject behind desktop: {}", e);
         std::process::exit(1);
@@ -68,7 +63,6 @@ fn main() {
 
     println!("[player] Injected behind desktop");
 
-    // Start playback
     if let Err(e) = player.play() {
         eprintln!("[player] Failed to start playback: {}", e);
         std::process::exit(1);
@@ -87,4 +81,9 @@ fn main() {
     }
 
     println!("[player] Player exiting");
+}
+
+#[cfg(not(target_os = "windows"))]
+fn main() {
+    panic!("wallpaper-player is Windows-only, we are working towards linux support!");
 }

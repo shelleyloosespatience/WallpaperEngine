@@ -1,4 +1,4 @@
-// Linux video wallpaper implementation using xwinwrap and mpv
+// Linux video wallpaper implementation using xwinwrap and mpv (filler file, dont pay attention to this, not yet implemented to the actual mpv)
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 
@@ -237,3 +237,20 @@ pub fn stop_linux_video_wallpaper() -> Result<(), String> {
     println!("[SUCCESS] wow Linux video wallpaper stopped");
     Ok(())
 }
+
+
+// // when we buld the app, we will use this with build yaml! and add 
+// this to cargo
+// [[bin]]
+// name = "wallpaper-player-linux"
+// path = "src/linux/main.rs"
+
+/// this to our yaml
+// # OS-specific player binaries 
+// - name: Build wallpaper-player (Windows)
+//   if: matrix.platform == 'windows-latest'
+//   run: cargo build --bin wallpaper-player --release
+
+// - name: Build wallpaper-player-linux (Linux)
+//   if: matrix.platform == 'ubuntu-latest'
+//   run: cargo build --bin wallpaper-player-linux --release

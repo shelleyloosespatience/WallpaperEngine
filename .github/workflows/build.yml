@@ -35,6 +35,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
         
+      # Build wallpaper-player binary ONLY on Windows
+      - name: Build wallpaper-player (Windows only)
+        if: matrix.platform == 'windows-latest'
+        working-directory: src-tauri
+        run: cargo build --bin wallpaper-player --release
+        
       - name: Build
         run: pnpm tauri build
         

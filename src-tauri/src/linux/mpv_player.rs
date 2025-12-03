@@ -1,5 +1,5 @@
 // this is a working mpv implementation
-// planned to be added in future versions where we support multiple players
+// planned to be added in future versions where we support multiple players and for linux
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use windows::Win32::Foundation::HWND;
