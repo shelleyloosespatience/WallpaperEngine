@@ -26,7 +26,6 @@ export default function StorePage({ selectedSource, filterType = 'all', isDirect
     const [currentType, setCurrentType] = React.useState<'static' | 'live' | 'all'>(filterType as any);
     const pageRef = React.useRef(1);
 
-    // Show welcome modal on direct navigation
     React.useEffect(() => {
         if (isDirectNavigation) {
             setShowWelcome(true);
@@ -48,10 +47,26 @@ export default function StorePage({ selectedSource, filterType = 'all', isDirect
                 if (currentType === 'live') {
                     sourcesToUse = ['motionbgs'];
                 } else if (currentType === 'all') {
-                    // Fetch from BOTH static and live sources
-                    sourcesToUse = ['wallpaperflare', 'motionbgs'];
+                    // init load: fast results from wallpaperflare only
+                    // then uh the next loads: we do all sources
+                    if (!append) {
+                        sourcesToUse = ['wallpaperflare', 'motionbgs'];
+                    } else {
+                        sourcesToUse = ['wallhaven', 'moewalls', 'wallpapers', 'wallpaperflare', 'motionbgs'];
+                    }
                 } else {
-                    sourcesToUse = selectedSource === 'all' ? ['wallpaperflare'] : [selectedSource];
+                    // static wallpapers
+                    if (selectedSource !== 'all') {
+                        sourcesToUse = [selectedSource];
+                    } else {
+                        // init load: fast results from wallpaperflare only (hella fast!)
+                        // sub loads: all static sources for diversity
+                        if (!append) {
+                            sourcesToUse = ['wallpaperflare'];
+                        } else {
+                            sourcesToUse = ['wallhaven', 'moewalls', 'wallpapers', 'wallpaperflare'];
+                        }
+                    }
                 }
 
                 const result: any = await invoke('search_wallpapers', {
@@ -80,7 +95,7 @@ export default function StorePage({ selectedSource, filterType = 'all', isDirect
                         original: item,
                     }));
 
-                    // Don't filter when type is 'all' - show everything mixed!
+                    // Dont filter when type is 'all' - show everything mixed!
                     let filtered = normalized;
                     if (currentType === 'live') {
                         filtered = normalized.filter((item: WallpaperItem) => item.type === 'video');
