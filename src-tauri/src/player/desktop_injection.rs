@@ -2,13 +2,12 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use windows::core::{BOOL, PCWSTR};
-use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
+use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{
-    EnumChildWindows, EnumWindows, FindWindowExW, FindWindowW, GetWindowLongPtrW,
-    SendMessageTimeoutW, SetParent, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_EXSTYLE,
-    GWL_STYLE, HWND_BOTTOM, SMTO_NORMAL, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_SHOWNA,
-    WS_CHILD, WS_DISABLED, WS_EX_LAYERED, WS_EX_TRANSPARENT,
-    WS_POPUP,
+    EnumWindows, FindWindowExW, FindWindowW, GetWindowLongPtrW, SendMessageTimeoutW,
+    SetLayeredWindowAttributes, SetParent, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_STYLE,
+    HWND_BOTTOM, LWA_ALPHA, SMTO_NORMAL, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_SHOWNA,
+    WS_CHILD, WS_DISABLED, WS_POPUP,
 };
 
 lazy_static::lazy_static! {
@@ -17,6 +16,8 @@ lazy_static::lazy_static! {
     static ref CURRENT_HWND: Arc<Mutex<Option<isize>>> = Arc::new(Mutex::new(None));
     static ref WINDOW_BOUNDS: Arc<Mutex<(i32, i32, i32, i32)>> = Arc::new(Mutex::new((0, 0, 1920, 1080)));
     static ref WORKERW_HANDLE: Arc<Mutex<Option<isize>>> = Arc::new(Mutex::new(None));
+    static ref SHELLVIEW_HANDLE: Arc<Mutex<Option<isize>>> = Arc::new(Mutex::new(None));
+    static ref PROGMAN_HANDLE: Arc<Mutex<Option<isize>>> = Arc::new(Mutex::new(None));
     static ref IS_WINDOWS_11_24H2: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(None));
 }
 
@@ -29,17 +30,8 @@ fn is_windows_11_24h2_or_later() -> bool {
     }
 
     let build_number = get_windows_build_number();
-    println!("[desktop_injection] Windows build number: {}", build_number);
-
     let is_24h2 = build_number >= 26100;
     *IS_WINDOWS_11_24H2.lock().unwrap() = Some(is_24h2);
-
-    if is_24h2 {
-        println!("[desktop_injection] Detected Windows 11 24H2 or later");
-    } else {
-        println!("[desktop_injection] Detected older Windows version (pre-24H2)");
-    }
-
     is_24h2
 }
 
@@ -66,19 +58,10 @@ fn get_windows_build_number() -> u32 {
                             return version_info.dwBuildNumber;
                         }
                     }
-                    None => {
-                        println!(
-                            "[desktop_injection] Warning: RtlGetVersion not found in ntdll.dll"
-                        );
-                    }
+                    None => {}
                 }
             }
-            Err(e) => {
-                println!(
-                    "[desktop_injection] Warning: Could not load ntdll.dll: {}",
-                    e
-                );
-            }
+            Err(_) => {}
         }
 
         0
@@ -89,10 +72,9 @@ pub fn inject_behind_desktop(
     hwnd: HWND,
     _x: i32,
     _y: i32,
-    width: i32, // Correct dimensions provided by caller
-    height: i32,
+    _width: i32,
+    _height: i32,
 ) -> Result<(), String> {
-    println!("[desktop_injection] Injecting window into desktop");
     stop_watchdog();
     thread::sleep(Duration::from_millis(300));
 
@@ -103,27 +85,38 @@ pub fn inject_behind_desktop(
         )
         .map_err(|e| format!("FindWindowW failed: {}", e))?;
 
-        println!(
-            "[desktop_injection] Using provided dimensions: {}x{}",
-            width, height
-        );
+        use windows::Win32::UI::WindowsAndMessaging::{
+            GetSystemMetrics, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
+            SM_YVIRTUALSCREEN,
+        };
+
+        let virtual_x = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        let virtual_y = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        let virtual_width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        let virtual_height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 
         *CURRENT_HWND.lock().unwrap() = Some(hwnd.0 as isize);
-        *WINDOW_BOUNDS.lock().unwrap() = (0, 0, width, height);
-
-        // CRITICAL FIX: Don't modify extended styles - window already created correctly
-        // NO WS_EX_LAYERED - that's incompatible with D3D11 and was removed from wmf_player
-        // WS_EX_TRANSPARENT already set during window creation
-
-        // CRITICAL FIX: Don't modify base styles - window already created as WS_CHILD | WS_DISABLED
-        // Modifying styles after creation causes DWM confusion
+        *WINDOW_BOUNDS.lock().unwrap() = (virtual_x, virtual_y, virtual_width, virtual_height);
+        *PROGMAN_HANDLE.lock().unwrap() = Some(progman.0 as isize);
 
         if is_windows_11_24h2_or_later() {
-            println!("[desktop_injection] Using Windows 11 24H2+ injection method");
-            inject_windows_11_24h2(hwnd, progman, 0, 0, width, height)?;
+            inject_windows_11_24h2(
+                hwnd,
+                progman,
+                virtual_x,
+                virtual_y,
+                virtual_width,
+                virtual_height,
+            )?;
         } else {
-            println!("[desktop_injection] Using legacy WorkerW injection method");
-            inject_legacy_workerw(hwnd, progman, 0, 0, width, height)?;
+            inject_legacy_workerw(
+                hwnd,
+                progman,
+                virtual_x,
+                virtual_y,
+                virtual_width,
+                virtual_height,
+            )?;
         }
     }
 
@@ -139,121 +132,83 @@ unsafe fn inject_windows_11_24h2(
     width: i32,
     height: i32,
 ) -> Result<(), String> {
-    // LIVELY FIX 1: Use correct SendMessage params (0xD, 0x1 instead of 0, 0)
-    println!("[desktop_injection] Sending 0x052C to Progman with Lively's params");
+    // ===================================================================
+    // ACHIEVMENT :3 WINDOWS 11 24H2 FIX
+    // ===================================================================
+    // Based on new hierarchy for newer win builds:
+    //
+    // past 24H2:
+    //   Progman ─┐
+    //            ├─ ShellDLL_DefView  // Desktop icons (interactive, visible)
+    //            ├─ COLORWALL ;3    // Our layered window goes here
+    //            └─ WorkerW           // Static wallpaper (beneath everything)
+    // anyone looking or working with windows 11 in game engines etc or stuff, this is a comprehensive solution
+    // so we did:
+    //    send 0x052C to Progman to raise desktop hierarchy
+    //    then find ShellDLL_DefView and WorkerW as children of Progman
+    //    parent our window to Progman (make it a child)
+    //    pos our window below ShellDLL_DefView but above WorkerW
+    //    make window fully opaque with SetLayeredWindowAttributes
+    // ===================================================================
+
     let _ = SendMessageTimeoutW(
         progman,
         0x052C,
-        WPARAM(0xD), // Lively uses 0xD
-        LPARAM(0x1), // Lively uses 0x1
+        WPARAM(0),
+        LPARAM(0),
         SMTO_NORMAL,
         1000,
         None,
     );
     thread::sleep(Duration::from_millis(500));
 
-    println!("[desktop_injection] Finding SHELLDLL_DefView");
     let shell_view = FindWindowExW(
         Some(progman),
         None,
         PCWSTR(windows::core::w!("SHELLDLL_DefView").as_ptr()),
         PCWSTR::null(),
     )
-    .map_err(|e| format!("DefView not found: {}", e))?;
+    .map_err(|e| format!("[24H2] ShellDLL_DefView not found: {}", e))?;
 
-    // Convert WS_POPUP to WS_CHILD (NO WS_DISABLED - causes input issues)
-    println!("[desktop_injection] Converting WS_POPUP to WS_CHILD (no WS_DISABLED)");
-    let mut style = GetWindowLongPtrW(hwnd, GWL_STYLE);
-    style &= !(WS_POPUP.0 as isize);
-    style &= !(WS_DISABLED.0 as isize); // Explicitly remove WS_DISABLED
-    style |= WS_CHILD.0 as isize; // Add ONLY WS_CHILD
-    SetWindowLongPtrW(hwnd, GWL_STYLE, style);
-
-    println!("[desktop_injection] Parenting to Progman");
-    SetParent(hwnd, Some(progman)).map_err(|e| format!("SetParent failed: {}", e))?;
-
-    // WS_EX_TRANSPARENT FIX: Remove WS_EX_LAYERED (incompatible with D3D11), add WS_EX_TRANSPARENT
-    // This tells Windows: "Pass ALL input through this window, don't wait for response!"
-    // Prevents Explorer.exe deadlock when dragging files on desktop
-    println!("[desktop_injection] Applying WS_EX_TRANSPARENT fix for drag-drop deadlock");
-    let mut ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
-    ex_style &= !(WS_EX_LAYERED.0 as isize); // Remove WS_EX_LAYERED first
-    ex_style |= WS_EX_TRANSPARENT.0 as isize; // Add WS_EX_TRANSPARENT
-    SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex_style);
-
-    // LIVELY FIX 4: Position relative to DefView (not HWND_BOTTOM)
-    // Use SWP_NOMOVE | SWP_NOSIZE to set Z-order only, then position separately
-    println!("[desktop_injection] Positioning below DefView (Lively's Z-order)");
-    let window_flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE;
-
-    SetWindowPos(hwnd, Some(shell_view), 0, 0, 0, 0, window_flags)
-        .map_err(|e| format!("SetWindowPos Z-order failed: {}", e))?;
-
-    // Now set actual position and size
-    println!(
-        "[desktop_injection] Setting position ({}, {}) and size {}x{}",
-        x, y, width, height
-    );
-    SetWindowPos(hwnd, None, x, y, width, height, SWP_NOACTIVATE)
-        .map_err(|e| format!("SetWindowPos position failed: {}", e))?;
-
-    // LIVELY FIX 5: Ensure WorkerW stays at bottom
-    println!("[desktop_injection] Ensuring WorkerW Z-order");
-    ensure_workerw_zorder(progman)?;
-
-    let _ = ShowWindow(hwnd, SW_SHOWNA);
-
-    // CRITICAL: DO NOT call InvalidateRect or refresh desktop on Windows 11 24H2
-    // Lively explicitly skips this because it destroys WorkerW
-    println!("[desktop_injection] Skipping desktop refresh (would destroy WorkerW on 24H2)");
-
-    println!("[desktop_injection] Windows 11 24H2 injection completed");
-    Ok(())
-}
-
-// Helper function to ensure WorkerW stays at bottom (Lively's approach)
-unsafe fn ensure_workerw_zorder(progman: HWND) -> Result<(), String> {
-    // Find WorkerW as child of Progman (24H2 structure)
     let workerw = FindWindowExW(
         Some(progman),
         None,
         PCWSTR(windows::core::w!("WorkerW").as_ptr()),
         PCWSTR::null(),
-    );
+    )
+    .map_err(|e| format!("[24H2] WorkerW not found as child of Progman: {}", e))?;
 
-    if let Ok(workerw) = workerw {
-        // Get last child of Progman
-        let last_child = get_last_child_window(progman);
+    *WORKERW_HANDLE.lock().unwrap() = Some(workerw.0 as isize);
+    *SHELLVIEW_HANDLE.lock().unwrap() = Some(shell_view.0 as isize);
 
-        if last_child != workerw.0 as isize {
-            println!("[desktop_injection] WorkerW not at bottom, fixing Z-order");
-            let window_flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE;
-            SetWindowPos(workerw, Some(HWND_BOTTOM), 0, 0, 0, 0, window_flags)
-                .map_err(|e| format!("Failed to fix WorkerW Z-order: {}", e))?;
-        }
-    }
+    let mut style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+    style &= !(WS_POPUP.0 as isize);
+    style &= !(WS_DISABLED.0 as isize);
+    style |= WS_CHILD.0 as isize;
+    SetWindowLongPtrW(hwnd, GWL_STYLE, style);
+
+    SetParent(hwnd, Some(progman)).map_err(|e| format!("SetParent failed: {}", e))?;
+
+    SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA)
+        .map_err(|e| format!("SetLayeredWindowAttributes failed: {}", e))?;
+
+    SetWindowPos(hwnd, Some(shell_view), x, y, width, height, SWP_NOACTIVATE)
+        .map_err(|e| format!("SetWindowPos (below ShellView) failed: {}", e))?;
+
+    SetWindowPos(
+        workerw,
+        Some(hwnd),
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+    )
+    .map_err(|e| format!("SetWindowPos (WorkerW behind) failed: {}", e))?;
+
+    let _ = ShowWindow(hwnd, SW_SHOWNA);
 
     Ok(())
-}
-
-unsafe fn get_last_child_window(parent: HWND) -> isize {
-    let mut last_child: isize = 0;
-
-    extern "system" fn enum_child_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
-        unsafe {
-            let last_ptr = lparam.0 as *mut isize;
-            *last_ptr = hwnd.0 as isize;
-        }
-        BOOL(1)
-    }
-
-    let _ = EnumChildWindows(
-        Some(parent),
-        Some(enum_child_proc),
-        LPARAM(&mut last_child as *mut _ as isize),
-    );
-
-    last_child
 }
 
 unsafe fn inject_legacy_workerw(
@@ -341,12 +296,9 @@ unsafe fn parent_to_workerw(
     width: i32,
     height: i32,
 ) -> Result<(), String> {
-    // Convert WS_POPUP to WS_CHILD (same as Windows 11 24H2 approach)
-    // NO WS_DISABLED - it causes input issues
-    println!("[desktop_injection] Converting WS_POPUP to WS_CHILD (no WS_DISABLED)");
     let mut style = GetWindowLongPtrW(hwnd, GWL_STYLE);
     style &= !(WS_POPUP.0 as isize);
-    style &= !(WS_DISABLED.0 as isize); // Explicitly remove WS_DISABLED
+    style &= !(WS_DISABLED.0 as isize);
     style |= WS_CHILD.0 as isize;
     SetWindowLongPtrW(hwnd, GWL_STYLE, style);
 
@@ -394,7 +346,9 @@ fn start_watchdog() {
                         break;
                     }
 
-                    if !is_24h2 {
+                    if is_24h2 {
+                        verify_24h2_zorder(hwnd);
+                    } else {
                         if find_workerw().is_none() {
                             let (x, y, width, height) = *WINDOW_BOUNDS.lock().unwrap();
 
@@ -423,6 +377,51 @@ fn start_watchdog() {
     *WATCHDOG_HANDLE.lock().unwrap() = Some(handle);
 }
 
+unsafe fn verify_24h2_zorder(hwnd: HWND) {
+    let progman_opt = *PROGMAN_HANDLE.lock().unwrap();
+    let shellview_opt = *SHELLVIEW_HANDLE.lock().unwrap();
+    let workerw_opt = *WORKERW_HANDLE.lock().unwrap();
+
+    if let (Some(progman_ptr), Some(shellview_ptr), Some(workerw_ptr)) =
+        (progman_opt, shellview_opt, workerw_opt)
+    {
+        let progman = HWND(progman_ptr as *mut _);
+        let shellview = HWND(shellview_ptr as *mut _);
+        let workerw = HWND(workerw_ptr as *mut _);
+
+        if !is_window_valid(workerw) {
+            if let Ok(new_workerw) = FindWindowExW(
+                Some(progman),
+                None,
+                PCWSTR(windows::core::w!("WorkerW").as_ptr()),
+                PCWSTR::null(),
+            ) {
+                *WORKERW_HANDLE.lock().unwrap() = Some(new_workerw.0 as isize);
+
+                let _ = SetWindowPos(
+                    hwnd,
+                    Some(shellview),
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+                );
+
+                let _ = SetWindowPos(
+                    new_workerw,
+                    Some(hwnd),
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+                );
+            }
+        }
+    }
+}
+
 unsafe fn is_window_valid(hwnd: HWND) -> bool {
     use windows::Win32::UI::WindowsAndMessaging::IsWindow;
     IsWindow(Some(hwnd)).as_bool()
@@ -432,6 +431,8 @@ pub fn stop_watchdog() {
     *WATCHDOG_STOP_FLAG.lock().unwrap() = true;
     *CURRENT_HWND.lock().unwrap() = None;
     *WORKERW_HANDLE.lock().unwrap() = None;
+    *SHELLVIEW_HANDLE.lock().unwrap() = None;
+    *PROGMAN_HANDLE.lock().unwrap() = None;
     let mut handle_lock = WATCHDOG_HANDLE.lock().unwrap();
     if let Some(handle) = handle_lock.take() {
         drop(handle_lock);
