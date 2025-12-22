@@ -4,7 +4,7 @@
 
 ### Free Wallpaper Engine Alternative Built in Rust for Performance for gamers and optimization Conessiours
 > Supporting -> LINUX | Windows | Mac
-> Contributions are heavily welcome! Im open to learning the mistakes i might have made, im not the best at rust or ts
+> Contributions are heavily welcome! Im open to learning the mistakes i might have made, im not the best at rust or ts (PLEASE open issues for anything i didn't test. This is literally in its development stage)
 
 > **~0.5% CPU / Around 3-8%GPU usage AX • 4K Video Wallpapers • 6+ Auto-Scraped Sources**
 
@@ -12,7 +12,7 @@
 
 - Works offline
 
-[![Build](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml/badge.svg)](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml)
+<!-- [![Build](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml/badge.svg)](https://github.com/shelleyloosespatience/WallpaperEngine/actions/workflows/build.yml) -->
 [![Made with Rust](https://img.shields.io/badge/Made%20with-Rust-orange?style=flat-square&logo=rust)](https://www.rust-lang.org)
 [![Tauri](https://img.shields.io/badge/Tauri-FFC131?style=flat-square&logo=tauri&logoColor=black)](https://tauri.app)
 
