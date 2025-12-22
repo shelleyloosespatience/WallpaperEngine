@@ -6,8 +6,8 @@ use windows::Win32::Foundation::{COLORREF, HWND, LPARAM, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{
     EnumWindows, FindWindowExW, FindWindowW, GetWindowLongPtrW, SendMessageTimeoutW,
     SetLayeredWindowAttributes, SetParent, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_STYLE,
-    HWND_BOTTOM, LWA_ALPHA, SMTO_NORMAL, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_SHOWNA,
-    WS_CHILD, WS_DISABLED, WS_POPUP,
+    HWND_BOTTOM, LWA_ALPHA, SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
+    SW_SHOWNA, WS_CHILD, WS_DISABLED, WS_POPUP,
 };
 
 lazy_static::lazy_static! {
@@ -151,6 +151,15 @@ unsafe fn inject_windows_11_24h2(
     //    make window fully opaque with SetLayeredWindowAttributes
     // ===================================================================
 
+    println!(
+        "[desktop_injection] [24H2] Virtual screen: x={}, y={}, width={}, height={}",
+        x, y, width, height
+    );
+    println!(
+        "[desktop_injection] [24H2] HWND: {:?}, Progman: {:?}",
+        hwnd, progman
+    );
+
     let _ = SendMessageTimeoutW(
         progman,
         0x052C,
@@ -181,19 +190,55 @@ unsafe fn inject_windows_11_24h2(
     *WORKERW_HANDLE.lock().unwrap() = Some(workerw.0 as isize);
     *SHELLVIEW_HANDLE.lock().unwrap() = Some(shell_view.0 as isize);
 
+    println!(
+        "[desktop_injection] [24H2] Found ShellDLL_DefView: {:?}, WorkerW: {:?}",
+        shell_view, workerw
+    );
+
     let mut style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+    println!(
+        "[desktop_injection] [24H2] Original window style: 0x{:X}",
+        style
+    );
     style &= !(WS_POPUP.0 as isize);
     style &= !(WS_DISABLED.0 as isize);
     style |= WS_CHILD.0 as isize;
     SetWindowLongPtrW(hwnd, GWL_STYLE, style);
+    println!("[desktop_injection] [24H2] New window style: 0x{:X}", style);
 
     SetParent(hwnd, Some(progman)).map_err(|e| format!("SetParent failed: {}", e))?;
+    println!("[desktop_injection] [24H2] SetParent to Progman: OK");
 
     SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA)
         .map_err(|e| format!("SetLayeredWindowAttributes failed: {}", e))?;
+    println!("[desktop_injection] [24H2] SetLayeredWindowAttributes alpha=255: OK");
 
-    SetWindowPos(hwnd, Some(shell_view), x, y, width, height, SWP_NOACTIVATE)
-        .map_err(|e| format!("SetWindowPos (below ShellView) failed: {}", e))?;
+    // CRITICAL: Child window coordinates are relative to parent (Progman), not screen!
+    // Use (0, 0) to cover the entire parent window, not (x, y) virtual screen coords
+    // SWP_FRAMECHANGED is REQUIRED after SetWindowLongPtrW style change per MSDN!
+    println!(
+        "[desktop_injection] [24H2] Calling SetWindowPos(0, 0, {}, {}) with SWP_FRAMECHANGED",
+        width, height
+    );
+    SetWindowPos(
+        hwnd,
+        Some(shell_view),
+        0,
+        0,
+        width,
+        height,
+        SWP_NOACTIVATE | SWP_FRAMECHANGED,
+    )
+    .map_err(|e| format!("SetWindowPos (below ShellView) failed: {}", e))?;
+
+    // Verify the window rect after positioning
+    use windows::Win32::UI::WindowsAndMessaging::GetWindowRect;
+    let mut rect: windows::Win32::Foundation::RECT = std::mem::zeroed();
+    if GetWindowRect(hwnd, &mut rect).is_ok() {
+        println!("[desktop_injection] [24H2] Window rect after SetWindowPos: left={}, top={}, right={}, bottom={} (size: {}x{})",
+            rect.left, rect.top, rect.right, rect.bottom,
+            rect.right - rect.left, rect.bottom - rect.top);
+    }
 
     SetWindowPos(
         workerw,
@@ -207,6 +252,7 @@ unsafe fn inject_windows_11_24h2(
     .map_err(|e| format!("SetWindowPos (WorkerW behind) failed: {}", e))?;
 
     let _ = ShowWindow(hwnd, SW_SHOWNA);
+    println!("[desktop_injection] [24H2] ShowWindow: OK");
 
     Ok(())
 }
@@ -304,8 +350,19 @@ unsafe fn parent_to_workerw(
 
     SetParent(hwnd, Some(workerw)).map_err(|e| format!("SetParent failed: {}", e))?;
 
-    SetWindowPos(hwnd, Some(HWND_BOTTOM), x, y, width, height, SWP_NOACTIVATE)
-        .map_err(|e| format!("SetWindowPos failed: {}", e))?;
+    // CRITICAL: Child window coordinates are relative to parent (WorkerW), not screen!
+    // Use (0, 0) to cover the entire parent window
+    // SWP_FRAMECHANGED is REQUIRED after SetWindowLongPtrW style change per MSDN!
+    SetWindowPos(
+        hwnd,
+        Some(HWND_BOTTOM),
+        0,
+        0,
+        width,
+        height,
+        SWP_NOACTIVATE | SWP_FRAMECHANGED,
+    )
+    .map_err(|e| format!("SetWindowPos failed: {}", e))?;
     let _ = ShowWindow(hwnd, SW_SHOWNA);
 
     Ok(())
