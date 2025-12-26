@@ -167,7 +167,9 @@ unsafe fn create_player_window(width: i32, height: i32) -> WmfResult<HWND> {
 
     let win_ver = get_windows_version();
 
-    let ex_style = if win_ver.is_windows_11_24h2_plus() {
+    // Windows 11 (all versions) requires WS_EX_LAYERED for proper compositor integration
+    // Windows 10 uses WS_EX_TRANSPARENT
+    let ex_style = if win_ver.is_windows_11() {
         WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOPARENTNOTIFY
     } else {
         WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_NOPARENTNOTIFY
@@ -189,7 +191,8 @@ unsafe fn create_player_window(width: i32, height: i32) -> WmfResult<HWND> {
     )
     .map_err(|e| format!("CreateWindowExW failed: {}", e))?;
 
-    if win_ver.is_windows_11_24h2_plus() {
+    // Windows 11 requires SetLayeredWindowAttributes for proper alpha blending
+    if win_ver.is_windows_11() {
         SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA)
             .map_err(|e| format!("SetLayeredWindowAttributes failed: {}", e))?;
     }

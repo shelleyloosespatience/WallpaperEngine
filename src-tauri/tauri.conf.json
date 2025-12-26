@@ -41,6 +41,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
+          "$APPDATA/ColorWall/*",
           "$TEMP/user_wallpapers/*",
           "$RESOURCE/**"
         ]
