@@ -63,6 +63,10 @@ pub struct VideoWallpaperState {
     pub is_active: bool,
     pub video_path: Option<String>,
     pub video_url: Option<String>,
+    /// Original URL from which the video was downloaded (for re-download if file is missing)
+    pub original_url: Option<String>,
+    /// Timestamp when wallpaper was set (for restoration tracking)
+    pub set_at: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

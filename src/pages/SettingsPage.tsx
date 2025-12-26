@@ -1,5 +1,8 @@
+// this page will soon a lot of settings, let me get the app stable first :>
 import React from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { motion } from 'framer-motion';
+import { Settings, Video, Volume2, HardDrive, Trash2, Info, Folder } from 'lucide-react';
 
 interface AppSettings {
     audioEnabled: boolean;
@@ -100,195 +103,361 @@ export default function SettingsPage() {
 
     if (loading) {
         return (
-            <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: 'var(--text-secondary)' }}>Loading settings...</p>
+            <div style={{
+                padding: '48px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '50vh'
+            }}>
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    style={{ textAlign: 'center' }}
+                >
+                    <div
+                        style={{
+                            width: '48px',
+                            height: '48px',
+                            border: '4px solid var(--border-medium)',
+                            borderTop: '4px solid var(--accent)',
+                            borderRadius: '50%',
+                            animation: 'spin 0.8s linear infinite',
+                            margin: '0 auto 16px',
+                        }}
+                    />
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>Loading settings...</p>
+                </motion.div>
             </div>
         );
     }
 
     return (
-        <div style={{ padding: '24px', maxWidth: '800px' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '24px' }}>Settings</h1>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div className="card">
-                    <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>
-                        Video Wallpaper
-                    </h2>
-
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '12px 0',
-                            borderBottom: '1px solid var(--border-subtle)',
-                        }}
-                    >
-                        <div>
-                            <div style={{ fontSize: '14px', fontWeight: 500 }}>Enable Live Wallpaper</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                                Allow video wallpapers to be set
-                            </div>
-                        </div>
-                        <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                            <input
-                                type="checkbox"
-                                checked={settings.liveWallpaperEnabled}
-                                onChange={(e) => handleSaveSettings({ ...settings, liveWallpaperEnabled: e.target.checked })}
-                                disabled={saving}
-                                style={{ opacity: 0, width: 0, height: 0 }}
-                            />
-                            <span
-                                style={{
-                                    position: 'absolute',
-                                    cursor: 'pointer',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    background: settings.liveWallpaperEnabled ? 'var(--accent)' : 'var(--border-medium)',
-                                    borderRadius: '24px',
-                                    transition: 'var(--transition)',
-                                }}
-                            >
-                                <span
-                                    style={{
-                                        position: 'absolute',
-                                        content: '',
-                                        height: '18px',
-                                        width: '18px',
-                                        left: settings.liveWallpaperEnabled ? '23px' : '3px',
-                                        bottom: '3px',
-                                        background: 'white',
-                                        borderRadius: '50%',
-                                        transition: 'var(--transition)',
-                                    }}
-                                />
-                            </span>
-                        </label>
-                    </div>
-
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '12px 0',
-                        }}
-                    >
-                        <div>
-                            <div style={{ fontSize: '14px', fontWeight: 500 }}>Enable Video Audio</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                                Play audio from video wallpapers
-                            </div>
-                        </div>
-                        <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px' }}>
-                            <input
-                                type="checkbox"
-                                checked={settings.audioEnabled}
-                                onChange={(e) => handleSaveSettings({ ...settings, audioEnabled: e.target.checked })}
-                                disabled={saving}
-                                style={{ opacity: 0, width: 0, height: 0 }}
-                            />
-                            <span
-                                style={{
-                                    position: 'absolute',
-                                    cursor: 'pointer',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    background: settings.audioEnabled ? 'var(--accent)' : 'var(--border-medium)',
-                                    borderRadius: '24px',
-                                    transition: 'var(--transition)',
-                                }}
-                            >
-                                <span
-                                    style={{
-                                        position: 'absolute',
-                                        content: '',
-                                        height: '18px',
-                                        width: '18px',
-                                        left: settings.audioEnabled ? '23px' : '3px',
-                                        bottom: '3px',
-                                        background: 'white',
-                                        borderRadius: '50%',
-                                        transition: 'var(--transition)',
-                                    }}
-                                />
-                            </span>
-                        </label>
-                    </div>
-
-                    {videoState.isActive && (
-                        <div style={{ marginTop: '12px' }}>
-                            <button onClick={handleToggleLiveWallpaper} className="btn-secondary">
-                                Stop Live Wallpaper
-                            </button>
-                        </div>
-                    )}
+        <div style={{ padding: '48px 40px', maxWidth: '900px', margin: '0 auto' }}>
+            {/* head */}
+            <motion.div
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                style={{ marginBottom: '40px' }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+                    <Settings size={32} style={{ color: 'var(--accent)' }} />
+                    <h1 style={{
+                        fontSize: '36px',
+                        fontWeight: 800,
+                        background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        letterSpacing: '-0.02em'
+                    }}>
+                        Settings
+                    </h1>
                 </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+                    Configure your wallpaper engine preferences
+                </p>
+            </motion.div>
 
-                <div className="card">
-                    <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>Storage</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
+                {/* vid Wallpaper Settings */}
+                <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.5 }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                        <Video size={24} style={{ color: 'var(--accent)' }} />
+                        <h2 style={{ fontSize: '20px', fontWeight: 700 }}>
+                            Video Wallpaper
+                        </h2>
+                    </div>
 
-                    <div
-                        style={{
-                            padding: '12px 0',
-                            borderBottom: '1px solid var(--border-subtle)',
-                        }}
-                    >
-                        <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
-                            Wallpaper Storage Path
-                        </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {/* Wallpaper Toggle */}
                         <div
                             style={{
-                                fontSize: '12px',
-                                color: 'var(--text-primary)',
-                                fontFamily: 'monospace',
-                                background: 'var(--bg-tertiary)',
-                                padding: '8px 12px',
-                                borderRadius: 'var(--radius-sm)',
-                                overflow: 'auto',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '16px',
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid var(--border-subtle)',
+                                transition: 'var(--transition)',
                             }}
                         >
-                            {storagePath || 'Not available'}
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '6px' }}>
+                                    Enable Live Wallpaper
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                    Allow video wallpapers to be set on your desktop
+                                </div>
+                            </div>
+                            <label className="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.liveWallpaperEnabled}
+                                    onChange={(e) => handleSaveSettings({ ...settings, liveWallpaperEnabled: e.target.checked })}
+                                    disabled={saving}
+                                />
+                                <span className="toggle-slider" />
+                            </label>
                         </div>
+
+                        {/* audio Toggle */}
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '16px',
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid var(--border-subtle)',
+                                transition: 'var(--transition)',
+                            }}
+                        >
+                            <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                    <Volume2 size={16} style={{ color: 'var(--accent)' }} />
+                                    <div style={{ fontSize: '15px', fontWeight: 600 }}>
+                                        Enable Video Audio
+                                    </div>
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                    Play audio from some video wallpapers (not all have audio)
+                                </div>
+                            </div>
+                            <label className="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.audioEnabled}
+                                    onChange={(e) => handleSaveSettings({ ...settings, audioEnabled: e.target.checked })}
+                                    disabled={saving}
+                                />
+                                <span className="toggle-slider" />
+                            </label>
+                        </div>
+
+                        {/* stop */}
+                        {videoState.isActive && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                style={{
+                                    padding: '16px',
+                                    background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(185, 28, 28, 0.05))',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid rgba(220, 38, 38, 0.2)',
+                                }}
+                            >
+                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                                    A video wallpaper is currently active
+                                </div>
+                                <button onClick={handleToggleLiveWallpaper} className="btn-danger">
+                                    Stop Live Wallpaper
+                                </button>
+                            </motion.div>
+                        )}
+                    </div>
+                </motion.div>
+
+                {/* Divider */}
+                <div style={{ height: '1px', background: 'var(--border-subtle)' }} />
+
+                {/* Storage Settings */}
+                <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.5 }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                        <HardDrive size={24} style={{ color: 'var(--accent)' }} />
+                        <h2 style={{ fontSize: '20px', fontWeight: 700 }}>Storage</h2>
                     </div>
 
-                    <div style={{ padding: '12px 0' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
-                            Cache
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        {/* Storage Path */}
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                <Folder size={16} style={{ color: 'var(--text-secondary)' }} />
+                                <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                                    Wallpaper Storage Path
+                                </div>
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: '13px',
+                                    color: 'var(--text-primary)',
+                                    fontFamily: 'Consolas, Monaco, monospace',
+                                    background: 'rgba(0, 0, 0, 0.3)',
+                                    padding: '12px 16px',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid var(--border-subtle)',
+                                    overflow: 'auto',
+                                    wordBreak: 'break-all',
+                                }}
+                            >
+                                {storagePath || 'Not available'}
+                            </div>
                         </div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                            {cacheInfo.fileCount} files · {cacheInfo.sizeMB} MB
-                        </div>
-                        <button onClick={handleClearCache} className="btn-secondary">
-                            Clear Cache
-                        </button>
-                    </div>
-                </div>
 
-                <div className="card">
-                    <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>About</h2>
-                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                        Colorwall v1.2.0
-                    </p>
-                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                        Presented to you by Laxenta Inc.
-                    </p>
-                    <p style={{ fontSize: '15px', color: 'var(--accent)', marginTop: '4px' }}>
-                        <a href="https://laxenta.tech" target="_blank" rel="noopener noreferrer">
-                            https://laxenta.tech
-                        </a>
-                    </p>
-                    <p style={{ fontSize: '21px', color: 'aqua', marginTop: '4px' }}>
-                        <a href="https://github.com/shelleyloosespatience/WallpaperEngine" target="_blank" rel="noopener noreferrer">
-                            Open to contributions, Click to go to our Repository.
-                        </a>
-                    </p>
-                </div>
+                        {/* Cache Info */}
+                        <div
+                            style={{
+                                padding: '16px',
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid var(--border-subtle)',
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                <Trash2 size={16} style={{ color: 'var(--text-secondary)' }} />
+                                <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                                    Cache Management
+                                </div>
+                            </div>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                marginBottom: '12px'
+                            }}>
+                                <div>
+                                    <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent)' }}>
+                                        {cacheInfo.sizeMB} MB
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                                        {cacheInfo.fileCount} files cached
+                                    </div>
+                                </div>
+                                <button onClick={handleClearCache} className="btn-secondary">
+                                    Clear Cache
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Divider */}
+                <div style={{ height: '1px', background: 'var(--border-subtle)' }} />
+
+                {/* About Section */}
+                <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                        <Info size={24} style={{ color: 'var(--accent)' }} />
+                        <h2 style={{ fontSize: '20px', fontWeight: 700 }}>About</h2>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        {/* App Info */}
+                        <div
+                            style={{
+                                padding: '20px',
+                                background: 'linear-gradient(135deg, rgba(0, 120, 212, 0.15), rgba(26, 134, 216, 0.08))',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid rgba(0, 120, 212, 0.25)',
+                            }}
+                        >
+                            <div style={{ fontSize: '32px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.02em' }}>
+                                Colorwall
+                            </div>
+                            <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                                Version 1.2.0
+                            </div>
+                            <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                                Presented to you by <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Laxenta Inc.</span>
+                            </div>
+                            <a
+                                href="https://laxenta.tech"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-block',
+                                    marginTop: '12px',
+                                    color: 'var(--accent)',
+                                    fontSize: '14px',
+                                    textDecoration: 'none',
+                                    fontWeight: 600,
+                                    transition: 'color 0.2s ease',
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.color = 'var(--accent-hover)'}
+                                onMouseOut={(e) => e.currentTarget.style.color = 'var(--accent)'}
+                            >
+                                 Visit My Website →
+                            </a>
+                        </div>
+
+                        {/* Repository CTA - Prominent */}
+                        <div
+                            style={{
+                                padding: '24px',
+                                background: 'linear-gradient(135deg, rgba(0, 217, 255, 0.15), rgba(0, 255, 255, 0.08))',
+                                borderRadius: 'var(--radius-md)',
+                                border: '2px solid rgba(0, 217, 255, 0.4)',
+                                boxShadow: '0 4px 20px rgba(0, 217, 255, 0.15)',
+                            }}
+                        >
+                            <div style={{
+                                fontSize: '20px',
+                                fontWeight: 700,
+                                marginBottom: '12px',
+                                color: '#00ffff',
+                                letterSpacing: '-0.01em',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
+                            }}>
+                                <span style={{ fontSize: '24px' }}>⭐</span>
+                                <span>Open Source & Contributions Welcome</span>
+                            </div>
+                            <p style={{
+                                fontSize: '14px',
+                                color: 'var(--text-secondary)',
+                                marginBottom: '16px',
+                                lineHeight: '1.6'
+                            }}>
+                                This project is open source and we welcome contributions from the community.
+                                Help us make Colorwall even better!
+                            </p>
+                            <a
+                                href="https://github.com/shelleyloosespatience/WallpaperEngine"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-block',
+                                    padding: '12px 24px',
+                                    background: 'linear-gradient(135deg, #00d9ff, #00ffff)',
+                                    color: '#0a0a0a',
+                                    fontSize: '15px',
+                                    fontWeight: 700,
+                                    textDecoration: 'none',
+                                    borderRadius: 'var(--radius-md)',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 4px 12px rgba(0, 217, 255, 0.3)',
+                                    fontFamily: 'Segoe UI, system-ui, sans-serif',
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 217, 255, 0.4)';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 217, 255, 0.3)';
+                                }}
+                            >
+                                🚀 Visit GitHub Repository →
+                            </a>
+                        </div>
+                    </div>
+                </motion.div>
             </div>
         </div>
     );

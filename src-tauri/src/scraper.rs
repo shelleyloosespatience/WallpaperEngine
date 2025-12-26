@@ -1,3 +1,5 @@
+// ACTUAL scrapers made from reading site html lol, used by the search.rs command, provides for three tier loading for video and thumbnails.
+// will add more video sites soon! i have found a few that i like a lot
 use crate::models::*;
 use regex::Regex;
 use scraper::{Html, Selector};

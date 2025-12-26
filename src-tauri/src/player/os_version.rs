@@ -1,4 +1,3 @@
-/// OS version detection utilities
 use std::sync::OnceLock;
 
 static OS_VERSION: OnceLock<WindowsVersion> = OnceLock::new();
@@ -31,7 +30,7 @@ impl WindowsVersion {
     }
 }
 
-/// Get the current Windows version (cached after first call)
+/// the current Windows version (cached after first call)
 pub fn get_windows_version() -> WindowsVersion {
     *OS_VERSION.get_or_init(|| detect_windows_version())
 }

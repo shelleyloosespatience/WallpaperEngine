@@ -12,9 +12,15 @@ lazy_static::lazy_static! {
         is_active: false,
         video_path: None,
         video_url: None,
+        original_url: None,
+        set_at: None,
     }));
 }
 
+// storage module for wallpaper state file location
+use crate::storage::get_app_data_dir;
+
+/// wallpaper cache directory (temp for downloaded videos, can be cleared)
 fn get_wallpaper_dir() -> Result<PathBuf, String> {
     let dir = std::env::temp_dir().join("live_wallpapers");
     std::fs::create_dir_all(&dir)
@@ -22,10 +28,9 @@ fn get_wallpaper_dir() -> Result<PathBuf, String> {
     Ok(dir)
 }
 
+/// persistent state file location (in AppData, survives cache clears)
 fn get_state_file() -> Result<PathBuf, String> {
-    let dir = std::env::temp_dir().join("live_wallpapers");
-    std::fs::create_dir_all(&dir)
-        .map_err(|e| format!("Failed to create wallpaper directory: {}", e))?;
+    let dir = get_app_data_dir()?;
     Ok(dir.join("wallpaper_state.json"))
 }
 
@@ -104,7 +109,8 @@ pub async fn download_video(url: &str) -> Result<PathBuf, String> {
     Ok(file_path)
 }
 
-pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str) -> Result<(), String> {
+/// create video wallpaper window (internal, doesn't save original_url)
+fn create_video_wallpaper_window_internal(_app: &AppHandle, video_path: &str) -> Result<(), String> {
     if !std::path::Path::new(video_path).exists() {
         return Err(format!("Video file not found: {}", video_path));
     }
@@ -123,29 +129,12 @@ pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str) -> Resu
     #[cfg(target_os = "windows")]
     {
         create_windows_wmf_wallpaper(_app, video_path)?;
-
-        let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
-        state.is_active = true;
-        state.video_path = Some(video_path.to_string());
-        state.video_url = Some(format!("file://{}", video_path));
-        let _ = save_wallpaper_state(&state);
-        drop(state);
-
-        println!("[video_wallpaper] Wallpaper created successfully");
         return Ok(());
     }
 
     #[cfg(target_os = "linux")]
     {
         video_wallpaper_linux::create_linux_video_wallpaper(video_path)?;
-
-        let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
-        state.is_active = true;
-        state.video_path = Some(video_path.to_string());
-        state.video_url = Some(format!("file://{}", video_path));
-        let _ = save_wallpaper_state(&state);
-        drop(state);
-
         return Ok(());
     }
 
@@ -153,6 +142,28 @@ pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str) -> Resu
     {
         return Err("Video wallpapers not supported on this platform temproarily".into());
     }
+}
+
+/// create video wallpaper and save state with original URL
+pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str, original_url: Option<String>) -> Result<(), String> {
+    create_video_wallpaper_window_internal(_app, video_path)?;
+
+    let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
+    state.is_active = true;
+    state.video_path = Some(video_path.to_string());
+    state.video_url = Some(format!("file://{}", video_path));
+    state.original_url = original_url;
+    state.set_at = Some(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64
+    );
+    let _ = save_wallpaper_state(&state);
+    drop(state);
+
+    println!("[video_wallpaper] Wallpaper created and state saved successfully");
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
@@ -165,7 +176,7 @@ fn create_windows_wmf_wallpaper(app: &AppHandle, video_path: &str) -> Result<(),
 
     println!("[video_wallpaper] Setting up video wallpaper via separate process");
 
-    // Get screen dimensions for wallpaper player
+    // screen dimensions for wallpaper player
     let (width, height) = unsafe {
         use windows::core::PCWSTR;
         use windows::Win32::Foundation::RECT;
@@ -187,7 +198,7 @@ fn create_windows_wmf_wallpaper(app: &AppHandle, video_path: &str) -> Result<(),
         (w, h)
     };
 
-    // Spawn the player process (DWM-isolated!)
+    // Spawn the player process (DWM-isolated yewwe)
     process_manager::spawn_player(app, &video_path_str, width, height)?;
 
     println!("[video_wallpaper] Wallpaper player spawned successfully");
@@ -218,6 +229,7 @@ pub fn stop_video_wallpaper(_app: &AppHandle) -> Result<(), String> {
 
     let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
     state.is_active = false;
+    // keep original_url and set_at for restoration tracking, only clear current paths
     state.video_path = None;
     state.video_url = None;
     let _ = save_wallpaper_state(&state);
@@ -230,46 +242,115 @@ pub fn get_video_wallpaper_state() -> VideoWallpaperState {
     VIDEO_WALLPAPER_STATE.lock().unwrap().clone()
 }
 
+/// periodically save state to prevent data loss (call this from a background task)
+pub fn periodic_state_save() {
+    let state = VIDEO_WALLPAPER_STATE.lock().unwrap();
+    if state.is_active {
+        let _ = save_wallpaper_state(&state);
+    }
+}
+
 pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
     println!("[startup] Attempting to restore wallpaper");
 
-    if let Some(saved_state) = load_wallpaper_state() {
-        if saved_state.is_active {
-            if let Some(ref video_path) = saved_state.video_path {
-                if std::path::Path::new(video_path).exists() {
-                    println!("[startup] Restoring wallpaper: {}", video_path);
-                    std::thread::sleep(std::time::Duration::from_millis(800));
+    let saved_state = match load_wallpaper_state() {
+        Some(state) => state,
+        None => {
+            println!("[startup] No saved wallpaper state found");
+            return Ok(());
+        }
+    };
 
-                    match create_video_wallpaper_window(app, video_path) {
+    if !saved_state.is_active {
+        println!("[startup] Saved state indicates wallpaper is not active");
+        return Ok(());
+    }
+
+    // try to restore from saved video path first
+    if let Some(ref video_path) = saved_state.video_path {
+        if std::path::Path::new(video_path).exists() {
+            println!("[startup] Found video file at saved path: {}", video_path);
+            std::thread::sleep(std::time::Duration::from_millis(800));
+
+            match create_video_wallpaper_window_internal(app, video_path) {
+                Ok(_) => {
+                    // restore full state including original_url
+                    let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
+                    *state = saved_state.clone();
+                    state.is_active = true;
+                    let _ = save_wallpaper_state(&state);
+                    drop(state);
+                    println!("[startup] Wallpaper restored from saved path");
+                    return Ok(());
+                }
+                Err(e) => {
+                    println!("[startup] Failed to restore from saved path: {}", e);
+                }
+            }
+        } else {
+            println!("[startup] Video file not found at saved path: {}", video_path);
+        }
+    }
+
+    // if saved path doesn't work, try to re-download from original URL
+    if let Some(ref original_url) = saved_state.original_url {
+        println!("[startup] Attempting to re-download from original URL: {}", original_url);
+        
+        // tokio runtime for async download
+        let app_clone = app.clone();
+        let url_clone = original_url.clone();
+        
+        // spawn async task for re-download
+        tauri::async_runtime::spawn(async move {
+            match download_video(&url_clone).await {
+                Ok(new_video_path) => {
+                    println!("[startup] Re-downloaded video to: {:?}", new_video_path);
+                    std::thread::sleep(std::time::Duration::from_millis(800));
+                    
+                    match create_video_wallpaper_window_internal(&app_clone, &new_video_path.to_string_lossy()) {
                         Ok(_) => {
-                            println!("[startup] Wallpaper restored");
-                            Ok(())
+                            // update state with new path
+                            let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
+                            state.is_active = true;
+                            state.video_path = Some(new_video_path.to_string_lossy().to_string());
+                            state.video_url = Some(format!("file://{}", new_video_path.to_string_lossy()));
+                            // keep original_url and set_at
+                            let _ = save_wallpaper_state(&state);
+                            drop(state);
+                            println!("[startup] Wallpaper restored from re-download");
                         }
                         Err(e) => {
-                            println!("[startup] Failed to restore: {}", e);
+                            eprintln!("[startup] Failed to set re-downloaded wallpaper: {}", e);
                             let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
                             state.is_active = false;
                             state.video_path = None;
                             state.video_url = None;
                             let _ = save_wallpaper_state(&state);
-                            Err(e)
                         }
                     }
-                } else {
+                }
+                Err(e) => {
+                    eprintln!("[startup] Failed to re-download video: {}", e);
+                    // clear state if re-download fails
                     let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
                     state.is_active = false;
                     state.video_path = None;
                     state.video_url = None;
                     let _ = save_wallpaper_state(&state);
-                    Ok(())
                 }
-            } else {
-                Ok(())
             }
-        } else {
-            Ok(())
-        }
-    } else {
-        Ok(())
+        });
+        
+        // Return OK immediately, restoration happens in background
+        return Ok(());
     }
+
+    // if we get here, no valid path or URL to restore from, so clear state
+    println!("[startup] No valid video path or original URL to restore from");
+    let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
+    state.is_active = false;
+    state.video_path = None;
+    state.video_url = None;
+    let _ = save_wallpaper_state(&state);
+    Ok(())
 }
