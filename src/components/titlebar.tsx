@@ -55,38 +55,12 @@ export default function EnhancedTitleBar({ onSettingsClick, onUserClick }: Enhan
         >
             <div style={{ display: 'flex', alignItems: 'center', gap: '11px', position: 'relative' }}>
                 <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {[...Array(3)].map((_, i) => (
-                        <motion.div
-                            key={i}
-                            animate={{
-                                scale: [1, 1.8, 1], 
-                                opacity: [0.5, 0, 0.5],
-                            }}
-                            transition={{
-                                duration: 3,
-                                repeat: Infinity,
-                                delay: i * 1.9,
-                                ease: 'easeOut',
-                            }}
-                            style={{
-                                position: 'absolute',
-                                left: '8%',
-                                top: '10%',
-                                transform: 'translate(-50%, -50%)',
-                                width: '24px',
-                                height: '24px',
-                                border: '2px solid #3b82f6',
-                                borderRadius: '50%',
-                                pointerEvents: 'none',
-                            }}
-                        />
-                    ))}
                     <LaxentaLogo />
                 </div>
-                
+
                 <span
-                    style={{ 
-                        fontSize: '16px', 
+                    style={{
+                        fontSize: '16px',
                         fontWeight: 700,
                         background: 'linear-gradient(to right, #60a5fa, #818cf8)',
                         WebkitBackgroundClip: 'text',

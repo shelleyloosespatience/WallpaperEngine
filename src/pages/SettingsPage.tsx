@@ -594,7 +594,7 @@ export default function SettingsPage() {
                                 Colorwall
                             </div>
                             <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                                Version 1.2.0
+                                Version 3.2.2
                             </div>
                             <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
                                 Presented to you by <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Laxenta Inc.</span>

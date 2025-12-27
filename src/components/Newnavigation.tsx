@@ -63,7 +63,6 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
             {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
-                const isHovered = hoveredTab === tab.id;
 
                 return (
                     <motion.button
@@ -104,11 +103,12 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                             overflow: 'hidden',
                         }}
                     >
-                        {/* border glow */}
+                        {/* border glow - simplified (static gradient or pulse once) */}
                         {isActive && (
                             <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
+                                layoutId="activeTabGlow"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
                                 style={{
                                     position: 'absolute',
                                     inset: 0,
@@ -119,24 +119,7 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                                     WebkitMaskComposite: 'xor',
                                     maskComposite: 'exclude',
                                 }}
-                            >
-                                <motion.div
-                                    animate={{
-                                        rotate: 360,
-                                    }}
-                                    transition={{
-                                        duration: 3,
-                                        repeat: Infinity,
-                                        ease: 'linear',
-                                    }}
-                                    style={{
-                                        position: 'absolute',
-                                        inset: -2,
-                                        background: 'conic-gradient(from 0deg, transparent, var(--accent), transparent)',
-                                        borderRadius: '12px',
-                                    }}
-                                />
-                            </motion.div>
+                            />
                         )}
 
                         {/* indicator bar */}
@@ -167,63 +150,21 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                             )}
                         </AnimatePresence>
 
-                        {/* ripple -> unstable*/}
-                        <AnimatePresence>
-                            {isHovered && !isActive && (
-                                <>
-                                    <motion.div
-                                        initial={{ scale: 0, opacity: 0.5 }}
-                                        animate={{ scale: 2, opacity: 0 }}
-                                        exit={{ scale: 0, opacity: 0 }}
-                                        transition={{ duration: 0.6, repeat: Infinity }}
-                                        style={{
-                                            position: 'absolute',
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '50%',
-                                            border: '2px solid var(--accent)',
-                                        }}
-                                    />
-                                    <motion.div
-                                        initial={{ scale: 0, opacity: 0.5 }}
-                                        animate={{ scale: 2, opacity: 0 }}
-                                        exit={{ scale: 0, opacity: 0 }}
-                                        transition={{ duration: 0.6, delay: 0.2, repeat: Infinity }}
-                                        style={{
-                                            position: 'absolute',
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '50%',
-                                            border: '2px solid var(--accent)',
-                                        }}
-                                    />
-                                </>
-                            )}
-                        </AnimatePresence>
+                        {/* ripple -> unstable - removed for performance */}
 
                         <motion.div
                             animate={isActive ? {
-                                y: [0, -3, 0],
-                                rotate: [0, 5, -5, 0],
+                                y: [0, -2, 0],
                             } : {}}
                             transition={{
-                                duration: 2,
-                                repeat: isActive ? Infinity : 0,
-                                ease: 'easeInOut',
+                                duration: 0.5,
+                                ease: 'easeOut',
                             }}
                         >
                             <Icon size={20} />
                         </motion.div>
 
-                        <motion.span
-                            animate={isActive ? {
-                                scale: [1, 1.05, 1],
-                            } : {}}
-                            transition={{
-                                duration: 2,
-                                repeat: isActive ? Infinity : 0,
-                                ease: 'easeInOut',
-                            }}
+                        <span
                             style={{
                                 fontSize: '11px',
                                 fontWeight: isActive ? 600 : 400,
@@ -232,38 +173,7 @@ export default function ModernNavigation({ activeTab, onTabChange }: ModernNavig
                             }}
                         >
                             {tab.label}
-                        </motion.span>
-
-                        {isActive && (
-                            <>
-                                {[...Array(6)].map((_, i) => (
-                                    <motion.div
-                                        key={i}
-                                        initial={{ scale: 0, x: 0, y: 0, opacity: 0 }}
-                                        animate={{
-                                            scale: [0, 1, 0],
-                                            x: Math.cos((i * Math.PI * 2) / 6) * 30,
-                                            y: Math.sin((i * Math.PI * 2) / 6) * 30,
-                                            opacity: [0, 0.6, 0],
-                                        }}
-                                        transition={{
-                                            duration: 2,
-                                            repeat: Infinity,
-                                            delay: i * 0.1,
-                                            ease: 'easeOut',
-                                        }}
-                                        style={{
-                                            position: 'absolute',
-                                            width: '4px',
-                                            height: '4px',
-                                            borderRadius: '50%',
-                                            background: 'var(--accent)',
-                                            pointerEvents: 'none',
-                                        }}
-                                    />
-                                ))}
-                            </>
-                        )}
+                        </span>
                     </motion.button>
                 );
             })}

@@ -45,8 +45,12 @@ impl MpvPlayer {
             .arg("--no-border")
             .arg("--input-cursor=no")
             .arg("--no-osc")
-            .arg("--hwdec=auto-safe")
-            .arg(format!("--wid={}", wid)) // CRITICAL: Render into our window!
+            // Windows optimization flags
+            .arg("--vo=gpu") // Use GPU video output
+            .arg("--gpu-context=d3d11") // Direct3D 11 is efficient on Windows
+            .arg("--hwdec=auto") // Prefer hardware decoding
+            .arg("--hwdec-codecs=all") // Try to decode everything on GPU
+            .arg(format!("--wid={}", wid))
             .arg(format!("--input-ipc-server={}", ipc_pipe_name))
             .arg(video_path)
             .stdin(Stdio::null())
