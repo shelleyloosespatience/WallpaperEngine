@@ -1,7 +1,7 @@
 // this is a working mpv implementation well for windows '=' lol
 // planned to be added in future versions where we support multiple players and for linux
-use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
+
 use windows::Win32::Foundation::HWND;
 
 pub struct MpvPlayer {
@@ -50,6 +50,10 @@ impl MpvPlayer {
             .arg("--gpu-context=d3d11") // Direct3D 11 is efficient on Windows
             .arg("--hwdec=auto") // Prefer hardware decoding
             .arg("--hwdec-codecs=all") // Try to decode everything on GPU
+            // Memory Optimization Flags (Safe)
+            .arg("--demuxer-max-bytes=32MiB") // Limit read-ahead buffer
+            .arg("--demuxer-max-back-bytes=16MiB") // Limit seek-back buffer
+            .arg("--vd-lavc-dr=yes") // Enable direct rendering
             .arg(format!("--wid={}", wid))
             .arg(format!("--input-ipc-server={}", ipc_pipe_name))
             .arg(video_path)
@@ -88,7 +92,7 @@ impl MpvPlayer {
                 Ok(())
             }
             Err(e) => {
-                // no ready that's OK for first few commands
+                // no ready thats OK for first few commands
                 println!("[mpv_player] Pipe not ready: {}", e);
                 Ok(())
             }

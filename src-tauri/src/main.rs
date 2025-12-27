@@ -120,7 +120,7 @@ fn main() {
                     "quit" => {
                         println!("[main] Quit requested from tray");
 
-                        let _ = stop_video_wallpaper(&app_handle_for_tray);
+                        let _ = shutdown_video_wallpaper(&app_handle_for_tray);
 
                         std::thread::sleep(std::time::Duration::from_millis(500));
 

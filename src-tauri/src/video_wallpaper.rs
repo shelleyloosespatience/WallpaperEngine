@@ -263,12 +263,31 @@ pub fn stop_video_wallpaper(_app: &AppHandle) -> Result<(), String> {
 
     let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
     state.is_active = false;
-    // keep original_url and set_at for restoration tracking, only clear current paths
     state.video_path = None;
     state.video_url = None;
     let _ = save_wallpaper_state(&state);
     drop(state);
 
+    Ok(())
+}
+
+/// Shuts down the player process (e.g. on app exit) without clearing the persistent state.
+/// This allows the wallpaper to be restored when the app is restarted.
+pub fn shutdown_video_wallpaper(_app: &AppHandle) -> Result<(), String> {
+    println!("[video_wallpaper] Shutting down wallpaper process (preserving state)");
+
+    #[cfg(target_os = "windows")]
+    {
+        stop_windows_wmf_wallpaper()?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        video_wallpaper_linux::stop_linux_video_wallpaper()?;
+    }
+
+    // Do NOT clear state.video_path or is_active
+    // We want restore_wallpaper_on_startup to find it next time.
     Ok(())
 }
 
