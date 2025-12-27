@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tauri::AppHandle;
-
+// DETECTS PLATFORMS AND USES APPROPRIATE WALLPAPER MODULE
 #[cfg(target_os = "linux")]
 use wallpaperengine::video_wallpaper_linux;
 

@@ -239,14 +239,9 @@ pub fn stop_linux_video_wallpaper() -> Result<(), String> {
 }
 
 
-// // when we buld the app, we will use this with build yaml! and add 
-// this to cargo
-// [[bin]]
-// name = "wallpaper-player-linux"
-// path = "src/linux/main.rs"
+// // when we buld the app, we will use this with build yaml! 
 
-/// this to our yaml
-// # OS-specific player binaries 
+/// this to our yaml uh
 // - name: Build wallpaper-player (Windows)
 //   if: matrix.platform == 'windows-latest'
 //   run: cargo build --bin wallpaper-player --release

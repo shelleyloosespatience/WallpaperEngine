@@ -11,10 +11,10 @@ default-run = "wallpaperengine"
 name = "wallpaperengine"
 path = "src/main.rs"
 
-# Separate wallpaper player process (DWM-isolated)
+# Separate wallpaper player process (DWM-isolated) - win only
 [[bin]]
 name = "wallpaper-player"
-path = "src/player/main.rs"
+path = "src/windows/main.rs"
 
 
 [build-dependencies]
