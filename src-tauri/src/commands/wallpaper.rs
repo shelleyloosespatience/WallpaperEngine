@@ -3,8 +3,64 @@ use crate::models::*;
 use crate::storage::*;
 use crate::video_wallpaper::*;
 use tauri::AppHandle;
+use tauri_plugin_dialog::DialogExt;
 
-/// Download image from URL to cache
+/// dwnload wallpaper from URL and save to user-selected location
+#[tauri::command]
+pub async fn download_wallpaper(
+    app: AppHandle,
+    url: String,
+    suggested_filename: String,
+) -> Result<DownloadResponse, String> {
+    println!("[download] Starting download from: {}", url);
+
+    // download the file first
+    let client = reqwest::Client::builder()
+        .user_agent("LaxentaInc/1.0")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+
+    println!("[download] Downloaded {} bytes", bytes.len());
+
+    // get file extension
+    let extension = suggested_filename.split('.').last().unwrap_or("jpg");
+
+    // show save dialog
+    let file_path = app
+        .dialog()
+        .file()
+        .set_file_name(&suggested_filename)
+        .add_filter("Image/Video", &[extension, "jpg", "png", "mp4", "webp"])
+        .blocking_save_file();
+
+    match file_path {
+        Some(path) => {
+            let path_str = path.to_string();
+            println!("[download] Saving to: {}", path_str);
+
+            std::fs::write(&path_str, bytes).map_err(|e| e.to_string())?;
+
+            Ok(DownloadResponse {
+                success: true,
+                path: Some(path_str),
+                error: None,
+            })
+        }
+        None => {
+            println!("[download] User cancelled save dialog");
+            Ok(DownloadResponse {
+                success: false,
+                path: None,
+                error: Some("Save cancelled by user".to_string()),
+            })
+        }
+    }
+}
+
+/// download image from URL to cache
 async fn download_image(url: &str) -> Result<std::path::PathBuf, String> {
     let client = reqwest::Client::builder()
         .user_agent("LaxentaInc/1.0")
@@ -162,8 +218,12 @@ pub async fn set_video_wallpaper(
         }
     };
 
-    // Save original URL for restoration capability
-    match create_video_wallpaper_window(&app, &video_path.to_string_lossy(), Some(video_url.clone())) {
+    // save original URL for restoration capability
+    match create_video_wallpaper_window(
+        &app,
+        &video_path.to_string_lossy(),
+        Some(video_url.clone()),
+    ) {
         Ok(_) => Ok(WallpaperResponse {
             success: true,
             message: Some("video wallpaper set successfully".to_string()),
@@ -182,7 +242,10 @@ pub async fn set_video_wallpaper_from_file(
     app: AppHandle,
     file_path: String,
 ) -> Result<WallpaperResponse, String> {
-    println!("[main] setting video wallpaper from local file: {}", file_path);
+    println!(
+        "[main] setting video wallpaper from local file: {}",
+        file_path
+    );
 
     if !std::path::Path::new(&file_path).exists() {
         return Ok(WallpaperResponse {
@@ -192,7 +255,7 @@ pub async fn set_video_wallpaper_from_file(
         });
     }
 
-    // For local files, use file:// URL format and no original_url (it's already local)
+    // for local files, use file:// URL format and no original_url (it's already local)
     match create_video_wallpaper_window(&app, &file_path, None) {
         Ok(_) => Ok(WallpaperResponse {
             success: true,
@@ -349,4 +412,3 @@ pub async fn get_wallpaper_storage_path() -> Result<PathResponse, String> {
         }),
     }
 }
-

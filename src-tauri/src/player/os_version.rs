@@ -11,6 +11,7 @@ pub enum WindowsVersion {
 }
 
 impl WindowsVersion {
+    #[allow(dead_code)]
     pub fn is_windows_11_24h2_plus(&self) -> bool {
         matches!(self, WindowsVersion::Windows1124H2Plus)
     }

@@ -66,6 +66,7 @@ fn main() {
             upload_user_wallpaper,
             delete_user_wallpaper,
             get_wallpaper_storage_path,
+            download_wallpaper,
             // Settings commands
             get_settings,
             save_settings,

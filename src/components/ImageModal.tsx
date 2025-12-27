@@ -20,6 +20,7 @@ const ImageModal = ({ image, onClose, onSetWallpaper, isLoading }: ImageModalPro
     const [url4k, setUrl4k] = useState<string | null>(null);
     const [isResolving, setIsResolving] = useState(false);
     const [isSettingVideo, setIsSettingVideo] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [progressMessage, setProgressMessage] = useState<string>('');
     const hasResolvedRef = useRef(false);
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -255,16 +256,61 @@ const ImageModal = ({ image, onClose, onSetWallpaper, isLoading }: ImageModalPro
                     </div>
 
                     <div className="p-4 border-t border-gray-900/50 space-y-2">
-                        <a
-                            href={url4k || urlForWallpaper}
-                            download
-                            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
+                        <button
+                            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+                                e.stopPropagation();
+                                const downloadUrl = url4k || urlForWallpaper;
+                                if (!downloadUrl) return;
+
+                                setIsDownloading(true);
+                                try {
+                                    // Get filename from URL - take only the last segment after the last /
+                                    const urlPath = new URL(downloadUrl).pathname;
+                                    const urlFilename = urlPath.split('/').pop() || '';
+                                    const ext = urlFilename.includes('.')
+                                        ? urlFilename.split('.').pop()?.toLowerCase() || (image.type === 'video' ? 'mp4' : 'jpg')
+                                        : (image.type === 'video' ? 'mp4' : 'jpg');
+
+                                    // Use image title if available, otherwise use a timestamp
+                                    const baseName = image.title
+                                        ? image.title.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_').substring(0, 50)
+                                        : `wallpaper_${Date.now()}`;
+                                    const filename = `${baseName}.${ext}`;
+
+                                    // Invoke Rust command to download and save
+                                    const result: any = await invoke('download_wallpaper', {
+                                        url: downloadUrl,
+                                        suggestedFilename: filename
+                                    });
+
+                                    if (result?.success) {
+                                        console.log('[Download] Saved to:', result.path);
+                                    } else {
+                                        alert('Download failed: ' + (result?.error || 'Unknown error'));
+                                    }
+                                } catch (err) {
+                                    console.error('[Download] Error:', err);
+                                    alert('Download failed: ' + err);
+                                } finally {
+                                    setIsDownloading(false);
+                                }
+                            }}
+                            disabled={isDownloading}
                             onContextMenu={handleContextMenu}
-                            className="w-full flex items-center justify-center gap-2 bg-gray-900/80 hover:bg-gray-800 text-white px-4 py-3 rounded-lg transition-all font-medium shadow-lg cursor-pointer border border-gray-800/50 text-sm"
+                            className="w-full flex items-center justify-center gap-2 bg-gray-900/80 hover:bg-gray-800 disabled:opacity-50 text-white px-4 py-3 rounded-lg transition-all font-medium shadow-lg cursor-pointer border border-gray-800/50 text-sm"
                         >
-                            <Download className="w-4 h-4" />
-                            {url4k ? 'Download 4K' : 'Download'}
-                        </a>
+                            {isDownloading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Downloading...
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="w-4 h-4" />
+                                    {url4k ? 'Download 4K' : 'Download Image'}
+                                </>
+                            )}
+                        </button>
 
                         {image.type === 'video' && image.source === 'motionbgs' ? (
                             <button
@@ -275,7 +321,7 @@ const ImageModal = ({ image, onClose, onSetWallpaper, isLoading }: ImageModalPro
                                         alert('Video URL not resolved yet. Please wait...');
                                         return;
                                     }
-   
+
                                     // cancel
                                     if (abortControllerRef.current) {
                                         abortControllerRef.current.abort();

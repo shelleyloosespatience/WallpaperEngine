@@ -22,7 +22,7 @@ lazy_static::lazy_static! {
 }
 
 /// Check if running on Windows 11 (any version, build >= 22000)
-/// Windows 11 introduced the "raised desktop" compositor architecture
+/// Windows 11 introduced the raised desktop compositor architecture, i read it from thier release notes, refer to them ig
 /// that requires different injection method than Windows 10
 fn is_windows_11_or_later() -> bool {
     {
@@ -33,8 +33,8 @@ fn is_windows_11_or_later() -> bool {
     }
 
     let build_number = get_windows_build_number();
-    // Windows 11 starts at build 22000
-    // All Windows 11 versions use the new compositor architecture
+    // Windows 11 starts at build 22000, refer to their release notes
+    // All Windows 11 versions use the new compositor architecture (assumption lmao)
     let is_windows11 = build_number >= 22000;
     *IS_WINDOWS_11.lock().unwrap() = Some(is_windows11);
     is_windows11

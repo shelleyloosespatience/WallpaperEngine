@@ -109,3 +109,12 @@ pub struct PathResponse {
     pub path: Option<String>,
     pub error: Option<String>,
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadResponse {
+    pub success: bool,
+    pub path: Option<String>,
+    pub error: Option<String>,
+}
+

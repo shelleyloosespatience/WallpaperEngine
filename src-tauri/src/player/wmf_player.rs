@@ -100,7 +100,8 @@ impl WmfPlayer {
     pub fn hwnd(&self) -> HWND {
         self.hwnd
     }
-
+ // UNUSED
+    #[allow(dead_code)]
     pub fn reload_media_engine(&mut self) -> WmfResult<()> {
         unsafe {
             if let Some(engine) = self.media_engine.take() {
