@@ -230,3 +230,14 @@ textarea {
 .group:hover .group-hover\:opacity-100 {
     opacity: 1;
 }
+
+/* Border trace animation for loading screen */
+@keyframes borderTrace {
+    0% {
+        stroke-dashoffset: 0;
+    }
+
+    100% {
+        stroke-dashoffset: -608;
+    }
+}

@@ -29,3 +29,5 @@ mpv.exe
 # Added by cargo
 
 /target
+CHANGES.md
+package-lock.yaml

@@ -289,9 +289,9 @@ const ImageModal = ({ image, onClose, onSetWallpaper, isLoading }: ImageModalPro
                                     // yeawee progress updates (since backend doesnt stream progress)
                                     const progressSteps = [
                                         { delay: 0, message: 'Preparing video...' },
-                                        { delay: 2000, message: 'Downloading video...' },
-                                        { delay: 6000, message: 'Processing file...' },
-                                        { delay: 7000, message: 'Setting wallpaper...' },
+                                        { delay: 2500, message: 'Downloading video...' },
+                                        { delay: 9000, message: 'Processing file...' },
+                                        { delay: 12000, message: 'Setting wallpaper...' },
                                     ];
 
                                     let currentStep = 0;
@@ -362,12 +362,12 @@ const ImageModal = ({ image, onClose, onSetWallpaper, isLoading }: ImageModalPro
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        Setting...
+                                        Yaweeee! Setting...
                                     </>
                                 ) : (
                                     <>
                                         <CheckCircle className="w-5 h-5" />
-                                        Set as Wallpaper
+                                        Set as Wallpaper?
                                     </>
                                 )}
                             </button>

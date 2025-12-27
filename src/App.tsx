@@ -1,6 +1,7 @@
 import React from 'react';
 import EnhancedTitleBar from './components/titlebar';
 import ModernNavigation from './components/Newnavigation';
+import LoadingScreen from './components/LoadingScreen';
 // import SnowEffect from './components/SnowEffect';
 import HomePage from './pages/HomePage';
 import LibraryPage from './pages/LibraryPage';
@@ -9,10 +10,21 @@ import SettingsPage from './pages/SettingsPage';
 import { AnimatePresence, motion } from 'framer-motion';
 // import WelcomeModal from './components/WelcomeModal';
 export default function App() {
+    const [isLoading, setIsLoading] = React.useState(true);
     const [activeTab, setActiveTab] = React.useState('home');
     const [browsingSource, setBrowsingSource] = React.useState<string | null>(null);
     const [browsingLive, setBrowsingLive] = React.useState(false);
     const [isDirectNavigation, setIsDirectNavigation] = React.useState(false);
+
+    // initial loading - show loading screen for 2.5 seconds accurately 
+    // so the background rust process finishies restorations and initializes processes without deferring the frontend :> smort
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 2500);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleSourceNavigation = (source: string) => {
         setBrowsingSource(source);
@@ -40,7 +52,7 @@ export default function App() {
     const handleTabChange = (tab: string) => {
         setActiveTab(tab);
         if (tab === 'browse') {
-            // Direct navigation to store
+            // navigation to store
             setIsDirectNavigation(true);
         } else {
             setBrowsingSource(null);
@@ -50,67 +62,81 @@ export default function App() {
     };
 
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}>
-            {/* <SnowEffect /> */}
-            <EnhancedTitleBar onSettingsClick={handleSettingsClick} onUserClick={handleUserClick} />
-            <ModernNavigation activeTab={activeTab} onTabChange={handleTabChange} />
+        <>
+            <AnimatePresence mode="wait">
+                {isLoading ? (
+                    <LoadingScreen key="loading" />
+                ) : (
+                    <motion.div
+                        key="app"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                        style={{ minHeight: '100vh', background: 'var(--bg-primary)', position: 'relative' }}
+                    >
+                        {/* <SnowEffect /> */}
+                        <EnhancedTitleBar onSettingsClick={handleSettingsClick} onUserClick={handleUserClick} />
+                        <ModernNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
-            <div style={{ marginLeft: '80px', marginTop: '48px', minHeight: 'calc(100vh - 48px)' }}>
-                <AnimatePresence mode="wait">
-                    {activeTab === 'home' && (
-                        <motion.div
-                            key="home"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <HomePage
-                                onNavigateToSource={handleSourceNavigation}
-                                onNavigateToLive={handleLiveNavigation}
-                            />
-                        </motion.div>
-                    )}
-                    {activeTab === 'browse' && (
-                        <motion.div
-                            key="browse"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <StorePage
-                                selectedSource={browsingSource || 'all'}
-                                filterType={browsingLive ? 'live' : 'static'}
-                                isDirectNavigation={isDirectNavigation}
-                                onBack={() => setActiveTab('home')}
-                            />
-                        </motion.div>
-                    )}
-                    {activeTab === 'library' && (
-                        <motion.div
-                            key="library"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <LibraryPage />
-                        </motion.div>
-                    )}
-                    {activeTab === 'settings' && (
-                        <motion.div
-                            key="settings"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <SettingsPage />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-        </div>
+                        <div style={{ marginLeft: '80px', marginTop: '48px', minHeight: 'calc(100vh - 48px)' }}>
+                            <AnimatePresence mode="wait">
+                                {activeTab === 'home' && (
+                                    <motion.div
+                                        key="home"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <HomePage
+                                            onNavigateToSource={handleSourceNavigation}
+                                            onNavigateToLive={handleLiveNavigation}
+                                        />
+                                    </motion.div>
+                                )}
+                                {activeTab === 'browse' && (
+                                    <motion.div
+                                        key="browse"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <StorePage
+                                            selectedSource={browsingSource || 'all'}
+                                            filterType={browsingLive ? 'live' : 'static'}
+                                            isDirectNavigation={isDirectNavigation}
+                                            onBack={() => setActiveTab('home')}
+                                        />
+                                    </motion.div>
+                                )}
+                                {activeTab === 'library' && (
+                                    <motion.div
+                                        key="library"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <LibraryPage />
+                                    </motion.div>
+                                )}
+                                {activeTab === 'settings' && (
+                                    <motion.div
+                                        key="settings"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <SettingsPage />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 }
