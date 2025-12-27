@@ -64,6 +64,8 @@ pub fn spawn_player(
     video_path: &str,
     width: i32,
     height: i32,
+    backend: &str,
+    mpv_path: Option<&str>,
 ) -> Result<(), String> {
     // Stop any existing player first
     stop_player()?;
@@ -72,19 +74,23 @@ pub fn spawn_player(
 
     println!("[process_manager] Spawning player: {:?}", player_path);
     println!(
-        "[process_manager] Args: {} {}x{}",
-        video_path, width, height
+        "[process_manager] Args: {} {}x{} backend:{} mpv:{:?}",
+        video_path, width, height, backend, mpv_path
     );
 
-    let child = Command::new(&player_path)
-        .args(&[video_path, &width.to_string(), &height.to_string()])
-        .spawn()
-        .map_err(|e| {
-            format!(
-                "Failed to spawn player process: {}. Path: {:?}",
-                e, player_path
-            )
-        })?;
+    let mut cmd = Command::new(&player_path);
+    cmd.args(&[video_path, &width.to_string(), &height.to_string(), backend]);
+
+    if let Some(mpv) = mpv_path {
+        cmd.arg(mpv);
+    }
+
+    let child = cmd.spawn().map_err(|e| {
+        format!(
+            "Failed to spawn player process: {}. Path: {:?}",
+            e, player_path
+        )
+    })?;
 
     println!("[process_manager] Player spawned with PID: {}", child.id());
 

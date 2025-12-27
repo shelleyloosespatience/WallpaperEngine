@@ -15,7 +15,13 @@ unsafe impl Send for MpvPlayer {}
 unsafe impl Sync for MpvPlayer {}
 
 impl MpvPlayer {
-    pub fn new(hwnd: HWND, video_path: &str, width: i32, height: i32) -> Result<Self, String> {
+    pub fn new(
+        hwnd: HWND,
+        video_path: &str,
+        width: i32,
+        height: i32,
+        mpv_path: Option<String>,
+    ) -> Result<Self, String> {
         println!("[mpv_player] Starting MPV process");
 
         // generate unique pipe name (Windows named pipe format)
@@ -24,8 +30,11 @@ impl MpvPlayer {
         // Convert HWND to i64 for MPV's --wid parameter
         let wid = hwnd.0 as i64;
 
-        // bld MPV command like Lively does
-        let mut cmd = Command::new("mpv.exe");
+        // Use custom path if provided, otherwise default to "mpv.exe" (PATH)
+        let exe_cmd = mpv_path.unwrap_or_else(|| "mpv.exe".to_string());
+        println!("[mpv_player] Using MPV binary: {}", exe_cmd);
+
+        let mut cmd = Command::new(exe_cmd);
         cmd.arg("--volume=0")
             .arg("--loop-file")
             .arg("--keep-open")
@@ -149,8 +158,8 @@ pub unsafe fn create_mpv_window(width: i32, height: i32) -> Result<HWND, String>
         WS_POPUP,
         0,
         0,
-        width,
-        height,
+        0,
+        0,
         None,
         None,
         None,
@@ -170,9 +179,9 @@ pub unsafe fn create_mpv_window(width: i32, height: i32) -> Result<HWND, String>
         Some(HWND_BOTTOM),
         0,
         0,
-        0,
-        0,
-        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW,
+        width,
+        height,
+        SWP_NOACTIVATE | SWP_NOMOVE | SWP_HIDEWINDOW, // don't show yet
     );
 
     Ok(hwnd)

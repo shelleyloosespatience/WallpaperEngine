@@ -1,4 +1,4 @@
-use crate::models::VideoWallpaperState;
+use crate::models::{AppSettings, VideoWallpaperState};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -18,7 +18,7 @@ lazy_static::lazy_static! {
 }
 
 // storage module for wallpaper state file location
-use crate::storage::get_app_data_dir;
+use crate::storage::{get_app_data_dir, get_settings_file};
 
 /// wallpaper cache directory (temp for downloaded videos, can be cleared)
 fn get_wallpaper_dir() -> Result<PathBuf, String> {
@@ -110,7 +110,10 @@ pub async fn download_video(url: &str) -> Result<PathBuf, String> {
 }
 
 /// create video wallpaper window (internal, doesn't save original_url)
-fn create_video_wallpaper_window_internal(_app: &AppHandle, video_path: &str) -> Result<(), String> {
+fn create_video_wallpaper_window_internal(
+    _app: &AppHandle,
+    video_path: &str,
+) -> Result<(), String> {
     if !std::path::Path::new(video_path).exists() {
         return Err(format!("Video file not found: {}", video_path));
     }
@@ -145,7 +148,11 @@ fn create_video_wallpaper_window_internal(_app: &AppHandle, video_path: &str) ->
 }
 
 /// create video wallpaper and save state with original URL
-pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str, original_url: Option<String>) -> Result<(), String> {
+pub fn create_video_wallpaper_window(
+    _app: &AppHandle,
+    video_path: &str,
+    original_url: Option<String>,
+) -> Result<(), String> {
     create_video_wallpaper_window_internal(_app, video_path)?;
 
     let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
@@ -157,7 +164,7 @@ pub fn create_video_wallpaper_window(_app: &AppHandle, video_path: &str, origina
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_secs() as i64
+            .as_secs() as i64,
     );
     let _ = save_wallpaper_state(&state);
     drop(state);
@@ -175,6 +182,26 @@ fn create_windows_wmf_wallpaper(app: &AppHandle, video_path: &str) -> Result<(),
     let video_path_str = video_path_abs.display().to_string();
 
     println!("[video_wallpaper] Setting up video wallpaper via separate process");
+
+    // Load settings to determine player backend
+    let (backend, mpv_path) = match get_settings_file() {
+        Ok(path) => {
+            if path.exists() {
+                match std::fs::read_to_string(&path) {
+                    Ok(content) => match serde_json::from_str::<AppSettings>(&content) {
+                        Ok(settings) => (settings.video_player, settings.mpv_path),
+                        Err(_) => ("wmf".to_string(), None),
+                    },
+                    Err(_) => ("wmf".to_string(), None),
+                }
+            } else {
+                ("wmf".to_string(), None)
+            }
+        }
+        Err(_) => ("wmf".to_string(), None),
+    };
+
+    println!("[video_wallpaper] Using backend: {}", backend);
 
     // screen dimensions for wallpaper player
     let (width, height) = unsafe {
@@ -199,7 +226,14 @@ fn create_windows_wmf_wallpaper(app: &AppHandle, video_path: &str) -> Result<(),
     };
 
     // Spawn the player process (DWM-isolated yewwe)
-    process_manager::spawn_player(app, &video_path_str, width, height)?;
+    process_manager::spawn_player(
+        app,
+        &video_path_str,
+        width,
+        height,
+        &backend,
+        mpv_path.as_deref(),
+    )?;
 
     println!("[video_wallpaper] Wallpaper player spawned successfully");
     Ok(())
@@ -288,32 +322,42 @@ pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
                 }
             }
         } else {
-            println!("[startup] Video file not found at saved path: {}", video_path);
+            println!(
+                "[startup] Video file not found at saved path: {}",
+                video_path
+            );
         }
     }
 
     // if saved path doesn't work, try to re-download from original URL
     if let Some(ref original_url) = saved_state.original_url {
-        println!("[startup] Attempting to re-download from original URL: {}", original_url);
-        
+        println!(
+            "[startup] Attempting to re-download from original URL: {}",
+            original_url
+        );
+
         // tokio runtime for async download
         let app_clone = app.clone();
         let url_clone = original_url.clone();
-        
+
         // spawn async task for re-download
         tauri::async_runtime::spawn(async move {
             match download_video(&url_clone).await {
                 Ok(new_video_path) => {
                     println!("[startup] Re-downloaded video to: {:?}", new_video_path);
                     std::thread::sleep(std::time::Duration::from_millis(800));
-                    
-                    match create_video_wallpaper_window_internal(&app_clone, &new_video_path.to_string_lossy()) {
+
+                    match create_video_wallpaper_window_internal(
+                        &app_clone,
+                        &new_video_path.to_string_lossy(),
+                    ) {
                         Ok(_) => {
                             // update state with new path
                             let mut state = VIDEO_WALLPAPER_STATE.lock().unwrap();
                             state.is_active = true;
                             state.video_path = Some(new_video_path.to_string_lossy().to_string());
-                            state.video_url = Some(format!("file://{}", new_video_path.to_string_lossy()));
+                            state.video_url =
+                                Some(format!("file://{}", new_video_path.to_string_lossy()));
                             // keep original_url and set_at
                             let _ = save_wallpaper_state(&state);
                             drop(state);
@@ -340,7 +384,7 @@ pub fn restore_wallpaper_on_startup(app: &AppHandle) -> Result<(), String> {
                 }
             }
         });
-        
+
         // Return OK immediately, restoration happens in background
         return Ok(());
     }

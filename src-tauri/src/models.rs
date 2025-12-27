@@ -92,6 +92,16 @@ pub struct UserWallpapersResponse {
 pub struct AppSettings {
     pub audio_enabled: bool,
     pub live_wallpaper_enabled: bool,
+    /// Video player backend: "wmf" (Windows Media Foundation) or "mpv"
+    #[serde(default = "default_player")]
+    pub video_player: String,
+    /// Path to mpv.exe (optional, user can provide their own)
+    #[serde(default)]
+    pub mpv_path: Option<String>,
+}
+
+fn default_player() -> String {
+    "wmf".to_string()
 }
 
 #[derive(Debug, Serialize)]
@@ -117,4 +127,3 @@ pub struct DownloadResponse {
     pub path: Option<String>,
     pub error: Option<String>,
 }
-

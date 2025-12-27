@@ -7,16 +7,26 @@ import { Settings, Video, Volume2, HardDrive, Trash2, Info, Folder } from 'lucid
 interface AppSettings {
     audioEnabled: boolean;
     liveWallpaperEnabled: boolean;
+    videoPlayer: 'wmf' | 'mpv';
+    mpvPath: string | null;
+}
+
+interface VideoState {
+    isActive: boolean;
+    videoPath?: string;
+    videoUrl?: string;
 }
 
 export default function SettingsPage() {
     const [settings, setSettings] = React.useState<AppSettings>({
         audioEnabled: false,
         liveWallpaperEnabled: true,
+        videoPlayer: 'wmf',
+        mpvPath: null,
     });
     const [storagePath, setStoragePath] = React.useState('');
     const [cacheInfo, setCacheInfo] = React.useState({ sizeMB: '0', fileCount: 0 });
-    const [videoState, setVideoState] = React.useState({ isActive: false });
+    const [videoState, setVideoState] = React.useState<VideoState>({ isActive: false });
     const [loading, setLoading] = React.useState(true);
     const [saving, setSaving] = React.useState(false);
 
@@ -61,7 +71,20 @@ export default function SettingsPage() {
             const result: any = await invoke('save_settings', { settings: newSettings });
 
             if (result.success) {
+                // Check if player settings changed and we have an active wallpaper
+                const playerChanged = settings.videoPlayer !== newSettings.videoPlayer ||
+                    settings.mpvPath !== newSettings.mpvPath;
+
                 setSettings(newSettings);
+
+                if (playerChanged && videoState.isActive && videoState.videoPath) {
+                    console.log('Restarting wallpaper to apply player change...');
+                    try {
+                        await invoke('set_video_wallpaper_from_file', { filePath: videoState.videoPath });
+                    } catch (err) {
+                        console.error('Failed to restart wallpaper:', err);
+                    }
+                }
             } else {
                 alert('Failed to save settings: ' + result.error);
             }
@@ -268,6 +291,207 @@ export default function SettingsPage() {
                 {/* Divider */}
                 <div style={{ height: '1px', background: 'var(--border-subtle)' }} />
 
+                {/* Advanced Settings - Player Selection */}
+                <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.15, duration: 0.5 }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                        <Settings size={24} style={{ color: 'var(--accent)' }} />
+                        <h2 style={{ fontSize: '20px', fontWeight: 700 }}>
+                            Advanced
+                        </h2>
+                        <span style={{
+                            fontSize: '11px',
+                            padding: '2px 8px',
+                            background: 'rgba(139, 92, 246, 0.2)',
+                            color: 'rgb(167, 139, 250)',
+                            borderRadius: '4px',
+                            fontWeight: 600
+                        }}>
+                            EXPERIMENTAL
+                        </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {/* Player Selection */}
+                        <div
+                            style={{
+                                padding: '16px',
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid var(--border-subtle)',
+                            }}
+                        >
+                            <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '6px' }}>
+                                Video Player Backend
+                            </div>
+                            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                                Choose which player renders video wallpapers. WMF is default, MPV supports more formats.
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <label
+                                    style={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '12px 16px',
+                                        background: settings.videoPlayer === 'wmf' ? 'rgba(0, 120, 212, 0.15)' : 'rgba(0,0,0,0.2)',
+                                        border: settings.videoPlayer === 'wmf' ? '1px solid rgba(0, 120, 212, 0.4)' : '1px solid var(--border-subtle)',
+                                        borderRadius: 'var(--radius-md)',
+                                        cursor: 'pointer',
+                                        transition: 'var(--transition)',
+                                    }}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="videoPlayer"
+                                        value="wmf"
+                                        checked={settings.videoPlayer === 'wmf'}
+                                        onChange={() => handleSaveSettings({ ...settings, videoPlayer: 'wmf' })}
+                                        disabled={saving}
+                                        style={{ accentColor: 'var(--accent)' }}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: '14px' }}>WMF (Default)</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Windows Media Foundation</div>
+                                    </div>
+                                </label>
+
+                                <label
+                                    style={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '12px 16px',
+                                        background: settings.videoPlayer === 'mpv' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(0,0,0,0.2)',
+                                        border: settings.videoPlayer === 'mpv' ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid var(--border-subtle)',
+                                        borderRadius: 'var(--radius-md)',
+                                        cursor: 'pointer',
+                                        transition: 'var(--transition)',
+                                    }}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="videoPlayer"
+                                        value="mpv"
+                                        checked={settings.videoPlayer === 'mpv'}
+                                        onChange={() => handleSaveSettings({ ...settings, videoPlayer: 'mpv' })}
+                                        disabled={saving}
+                                        style={{ accentColor: 'var(--accent)' }}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: '14px' }}>MPV Player</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Better codec support</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* MPV Path - Only show when MPV is selected */}
+                        {settings.videoPlayer === 'mpv' && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                style={{
+                                    padding: '16px',
+                                    background: 'rgba(139, 92, 246, 0.05)',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                                }}
+                            >
+                                <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '6px' }}>
+                                    MPV Executable Path
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                                    {settings.mpvPath
+                                        ? 'MPV is configured. You can change the path below.'
+                                        : 'Download mpv.exe and select it below, or paste the path.'}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <input
+                                        type="text"
+                                        value={settings.mpvPath || ''}
+                                        onChange={(e) => setSettings({ ...settings, mpvPath: e.target.value || null })}
+                                        placeholder="C:\path\to\mpv.exe"
+                                        style={{
+                                            flex: 1,
+                                            padding: '10px 14px',
+                                            background: 'rgba(0, 0, 0, 0.3)',
+                                            border: '1px solid var(--border-subtle)',
+                                            borderRadius: 'var(--radius-md)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '13px',
+                                            fontFamily: 'Consolas, Monaco, monospace',
+                                        }}
+                                    />
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const { open } = await import('@tauri-apps/plugin-dialog');
+                                                const selected = await open({
+                                                    multiple: false,
+                                                    filters: [{ name: 'Executable', extensions: ['exe'] }],
+                                                    title: 'Select mpv.exe'
+                                                });
+                                                if (selected && typeof selected === 'string') {
+                                                    handleSaveSettings({ ...settings, mpvPath: selected });
+                                                }
+                                            } catch (err) {
+                                                console.error('File picker error:', err);
+                                            }
+                                        }}
+                                        style={{
+                                            padding: '10px 16px',
+                                            background: 'rgba(139, 92, 246, 0.2)',
+                                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                                            borderRadius: 'var(--radius-md)',
+                                            color: 'rgb(167, 139, 250)',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Browse...
+                                    </button>
+                                </div>
+
+                                {settings.mpvPath && (
+                                    <button
+                                        onClick={() => handleSaveSettings({ ...settings, mpvPath: settings.mpvPath })}
+                                        style={{
+                                            marginTop: '12px',
+                                            padding: '8px 16px',
+                                            background: 'var(--accent)',
+                                            border: 'none',
+                                            borderRadius: 'var(--radius-md)',
+                                            color: 'white',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Save MPV Path
+                                    </button>
+                                )}
+
+                                <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                    💡 Download MPV from: <a href="https://mpv.io/installation/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>mpv.io/installation</a>
+                                </div>
+                            </motion.div>
+                        )}
+                    </div>
+                </motion.div>
+
+                {/* Divider */}
+                <div style={{ height: '1px', background: 'var(--border-subtle)' }} />
+
                 {/* Storage Settings */}
                 <motion.div
                     initial={{ y: 20, opacity: 0 }}
@@ -391,7 +615,7 @@ export default function SettingsPage() {
                                 onMouseOver={(e) => e.currentTarget.style.color = 'var(--accent-hover)'}
                                 onMouseOut={(e) => e.currentTarget.style.color = 'var(--accent)'}
                             >
-                                 Visit My Website →
+                                Visit My Website →
                             </a>
                         </div>
 

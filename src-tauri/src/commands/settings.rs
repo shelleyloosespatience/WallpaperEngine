@@ -10,6 +10,8 @@ pub async fn get_settings() -> Result<SettingsResponse, String> {
         let default_settings = AppSettings {
             audio_enabled: false,
             live_wallpaper_enabled: true,
+            video_player: "wmf".to_string(),
+            mpv_path: None,
         };
         return Ok(SettingsResponse {
             success: true,
@@ -53,4 +55,3 @@ pub async fn save_settings(settings: AppSettings) -> Result<SettingsResponse, St
         error: None,
     })
 }
-
